@@ -1,0 +1,26 @@
+description: |
+  Find files matching a glob pattern. This tool searches for files matching the specified glob pattern,
+  with results sorted by modification time (most recently modified first).
+  
+  Fast pattern-based file discovery using glob patterns.
+  Supports standard glob wildcards (*, **, ?, etc.).
+  Recursive search by default (patterns auto-prefixed with **/).
+  Patterns NOT starting with "**/" are automatically prepended with "**/" to enable recursive searching.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "glob_pattern": {
+              "type": "string",
+              "description": "The glob pattern to match files against (e.g., '*.js', '**/*.tsx'). Patterns NOT starting with '**/' are automatically prepended with '**/' to enable recursive searching"
+          },
+          "target_directory": {
+              "type": "string",
+              "description": "Relative directory path to search in (optional, defaults to root plan directory)"
+          }
+      },
+      "required": ["glob_pattern"],
+      "additionalProperties": false
+  }
+

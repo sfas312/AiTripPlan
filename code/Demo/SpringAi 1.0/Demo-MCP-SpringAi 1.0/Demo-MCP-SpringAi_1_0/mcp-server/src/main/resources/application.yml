@@ -1,0 +1,15 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: imooc-weather-mcp-server
+  ai:
+    mcp:
+      server:
+        # MCP服务器名称
+        name: imooc-weather-mcp-server
+        version: 0.0.1
+        type: SYNC
+#        MCP服务器的地址
+#        JManus导入MCP服务器，如果是使用SSE协议，地址必须包含/sse/
+        sse-message-endpoint: /mcp/sse/weather

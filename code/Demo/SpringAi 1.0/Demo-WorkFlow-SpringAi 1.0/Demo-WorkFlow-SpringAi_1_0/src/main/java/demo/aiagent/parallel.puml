@@ -1,0 +1,18 @@
+@startuml parallel
+skinparam usecaseFontSize 14
+skinparam usecaseStereotypeFontSize 12
+skinparam hexagonFontSize 14
+skinparam hexagonStereotypeFontSize 12
+title "parallel"
+footer
+
+powered by spring-ai-alibaba
+end footer
+circle start as __START__
+circle stop as __END__
+usecase "node1"<<Node>>
+usecase "node2"<<Node>>
+"__START__" -down-> "node1"
+"node1" -down-> "node2"
+"node2" -down-> "__END__"
+@enduml

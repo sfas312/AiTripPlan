@@ -1,0 +1,13 @@
+description: |
+  启动所有注册函数的并行执行。
+  执行所有使用 register-batch-execution 注册的待处理函数。
+  使用异步非阻塞执行以防止线程池饥饿。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

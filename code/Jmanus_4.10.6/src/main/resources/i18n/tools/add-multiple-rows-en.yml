@@ -1,0 +1,32 @@
+description: |
+  Add one or multiple rows of data to a table. Supports Excel (.xlsx, .xls) and CSV (.csv) formats.
+  
+  Can be used to add a single row (pass an array with one element) or multiple rows.
+  Each row data must match the number of header columns (excluding ID column).
+  For each row: if it starts with a valid ID that exists, it will update that row;
+  if it starts with an ID that doesn't exist, it will insert as a new row;
+  if no ID is specified or ID is invalid, a new ID will be generated automatically.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the table file"
+          },
+          "multiple_rows_data": {
+              "type": "array",
+              "items": {
+                  "type": "array",
+                  "items": {
+                      "type": "string"
+                  }
+              },
+              "description": "List of rows data to write (can be a single row or multiple rows), each row data must match the number of headers"
+          }
+      },
+      "required": ["file_path", "multiple_rows_data"],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,31 @@
+description: |
+  Create a new table with headers. Supports Excel (.xlsx, .xls) and CSV (.csv) formats.
+  
+  Automatically adds ID column as the first column in the table.
+  File paths should use relative paths, using absolute paths will cause errors.
+  All content is processed as strings.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the table file to be created (relative path)"
+          },
+          "sheet_name": {
+              "type": "string",
+              "description": "Worksheet name"
+          },
+          "headers": {
+              "type": "array",
+              "items": {
+                  "type": "string"
+              },
+              "description": "List of headers (excluding ID column, which will be added automatically)"
+          }
+      },
+      "required": ["file_path", "headers"],
+      "additionalProperties": false
+  }
+

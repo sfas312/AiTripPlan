@@ -1,0 +1,16 @@
+description: |
+  按索引点击元素。这对应于 ARIA 快照中每个交互元素显示的 idx 值（例如 idx=39）。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "index": {
+              "type": "integer",
+              "description": "要点击的元素索引。这对应于 ARIA 快照中每个交互元素显示的 idx 值（例如 idx=39）。"
+          }
+      },
+      "required": ["index"],
+      "additionalProperties": false
+  }
+

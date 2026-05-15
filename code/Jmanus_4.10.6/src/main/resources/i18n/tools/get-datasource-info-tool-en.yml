@@ -1,0 +1,17 @@
+description: |
+  Get data source information including database product name, version, driver information, connection URL, and available datasources.
+  Use this tool when you need to check database connection configuration, understand database version and driver information, or troubleshoot connection issues.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "datasourceName": {
+              "type": "string",
+              "description": "Data source name, leave empty to get all available data sources"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,33 @@
+description: |
+  Register multiple executions of different tools in parallel.
+  This tool allows you to batch register multiple function calls, where each function can have its own tool name and parameters.
+  After registration, use start-parallel-execution to execute all registered functions in parallel.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "functions": {
+              "type": "array",
+              "description": "Array of function requests, each with its own tool name and parameters",
+              "items": {
+                  "type": "object",
+                  "properties": {
+                      "tool_name": {
+                          "type": "string",
+                          "description": "Tool name for this function execution"
+                      },
+                      "params": {
+                          "type": "object",
+                          "description": "Input parameters for this function execution"
+                      }
+                  },
+                  "required": ["tool_name"],
+                  "additionalProperties": false
+              }
+          }
+      },
+      "required": ["functions"],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,102 @@
+server:
+  port: 18080
+spring:
+  application:
+    name: spring-ai-alibaba-openlynxe
+  profiles:
+    active: h2
+  main:
+    allow-circular-references: true
+    lazy-initialization: false
+  aop:
+    proxy-target-class: true
+  servlet:
+    multipart:
+      max-file-size: 1073741824
+      max-request-size: 6442450944
+      enabled: true
+      file-size-threshold: 2048
+  # Hikari Configuration
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: Lynxe-${spring.profiles.active}-Pool
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      leak-detection-threshold: 60000
+  # JPA Configuration
+  jpa:
+    show-sql: false
+    open-in-view: false  # Disable Open Session In View to avoid performance issues
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Spring AI 配置
+  ai:
+    # 禁用 Spring AI 的自动配置，避免 ChatModel 相关错误
+    autoconfigure:
+      exclude:
+        - org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration
+
+# 日志配置
+logging:
+  file:
+    name: ./logs/info.log
+  level:
+    root: INFO
+    com.alibaba.cloud.ai.example.lynxe.inhouse.registry.McpToolRegistry: INFO
+    com.alibaba.cloud.ai.example.lynxe.tool: DEBUG
+    com.alibaba.cloud.ai.example.lynxe.inhouse.tool: DEBUG
+    com.alibaba.cloud.ai.lynxe.agent: DEBUG
+    com.alibaba.cloud.ai.lynxe.llm: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+
+
+
+namespace:
+  value: default
+
+agent:
+  # Initialize save agent on startup
+  init: true
+  # Serialize: fastjson | jackson
+  serialize: jackson
+
+# Proxy configuration (optional)
+# You can also set via environment variables: HTTP_PROXY, HTTPS_PROXY
+# Example: HTTP_PROXY=http://proxy.example.com:8080
+# 文件上传配置
+lynxe:
+  file-upload:
+    # 最大文件大小（字节）1GB
+    max-file-size: 1073741824
+    # 每次上传最大文件数
+    max-files-per-upload: 10
+    # 上传文件存储目录名
+    upload-directory: uploaded_files
+    # 文件类型验证策略：code (代码配置) 或 config (配置文件)
+    validation-strategy: code
+  proxy:
+    # Whether to enable proxy (default: false)
+    # Set to true to enable proxy configuration
+    enabled: false
+    # HTTP proxy host (e.g., proxy.example.com)
+    # Leave empty to use system proxy or environment variables
+    httpProxyHost: 127.0.0.1
+    # HTTP proxy port (e.g., 8080)
+    httpProxyPort: 6789
+    # HTTPS proxy host (e.g., proxy.example.com)
+    # If not set, httpProxyHost will be used for HTTPS as well
+    httpsProxyHost: 127.0.0.1
+    # HTTPS proxy port (e.g., 8080)
+    # If not set, httpProxyPort will be used for HTTPS as well
+    httpsProxyPort: 6789
+    # Proxy username (optional, for authenticated proxies)
+    proxyUsername: 
+    # Proxy password (optional, for authenticated proxies)
+    proxyPassword:

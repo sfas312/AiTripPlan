@@ -1,0 +1,38 @@
+description: |
+  Split text files (markdown, code, HTML, etc.) into smaller pieces in the external_link directory (linked_external folder). This tool helps break down
+  large text files into manageable chunks while preserving content completeness.
+  
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this tool
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+
+  Important: Files are read from the external_link directory (linked_external folder).
+  For example, to split a file in external_link, use file_path "file.md" or "subdir/file.md".
+  
+  The file is split into smaller pieces (as evenly as possible by lines). By default, files are split into 10 pieces.
+  In principle, you should keep each split file within 20000 characters.
+  Output files are saved in the same directory as the source file, named with index prefix: 0-filename.ext, 1-filename.ext, etc.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the file to split within the external_link directory (relative path from external folder, e.g., 'file.md' or 'subdir/file.md')"
+          },
+          "header": {
+              "type": "string",
+              "description": "Optional header text to add at the beginning of each split file"
+          },
+          "split_count": {
+              "type": "integer",
+              "description": "Optional number of pieces to split the file into (default: 10). Must be a positive integer."
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

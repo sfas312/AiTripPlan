@@ -1,0 +1,26 @@
+description: |
+  Execute SELECT queries (read-only operations only). Use this tool when you need to query database information.
+  
+  Important: When querying NULL values, use NULL keyword explicitly (e.g., WHERE email IS NULL).
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "query": {
+              "type": "string",
+              "description": "SELECT query statement to execute (read-only)"
+          },
+          "datasourceName": {
+              "type": "string",
+              "description": "Data source name, optional"
+          },
+          "parameters": {
+              "type": "array",
+              "description": "SQL parameters for prepared statements (optional)"
+          }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+  }
+

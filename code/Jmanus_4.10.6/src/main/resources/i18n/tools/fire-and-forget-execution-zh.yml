@@ -1,0 +1,31 @@
+description: |
+  启动所有注册函数的异步执行，不等待结果（即发即弃模式）。
+  执行所有使用 register-batch-execution 注册的待处理函数。
+  此工具立即返回成功状态，而执行在后台继续进行。
+  当您不需要等待执行结果并希望继续执行其他任务时使用此工具。
+  可选的定时器参数允许在未来某个时间调度执行。如果未指定定时器，则立即开始执行。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "day": {
+              "type": "integer",
+              "description": "延迟执行的天数（可选）。如果未指定，则立即开始执行。"
+          },
+          "hour": {
+              "type": "integer",
+              "description": "延迟执行的小时数（可选）。如果未指定，则立即开始执行。"
+          },
+          "minute": {
+              "type": "integer",
+              "description": "延迟执行的分钟数（可选）。如果未指定，则立即开始执行。"
+          },
+          "second": {
+              "type": "integer",
+              "description": "延迟执行的秒数（可选）。如果未指定，则立即开始执行。"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }

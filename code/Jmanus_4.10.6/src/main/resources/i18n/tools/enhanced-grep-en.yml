@@ -1,0 +1,83 @@
+description: |
+  Grep - Powerful search tool built on ripgrep (rg) for precise text/regular expression matching.
+  
+  ## Key Features:
+  - Full regex syntax support (e.g., "log.*Error", "function\\s+\\w+")
+  - Multiple pattern search: Use | (OR operator) to search for multiple words/patterns in one query (e.g., "Repository|Service|Controller")
+  - File filtering: glob patterns (e.g., "*.js", "*.{ts,tsx}") or type parameter (more efficient)
+  - Multiple output modes: "count" (match counts, default), "content" (shows lines)
+  - Case-insensitive search: Use -i parameter (default: false)
+  - Context display: -A (after), -B (before), -C (around) for showing surrounding lines
+  - Multiline mode: Enable with multiline=true (. matches newlines, patterns can span lines)
+  - Result limiting: Use head_limit to cap output (default: 1000 results)
+  
+  ## When to Use:
+  Use Grep for: Exact text search, regex matching, known symbol/variable name lookup, quick string location
+  Don't use Grep for: Semantic understanding search (use SemanticSearch), file name search (use Glob), reading known files (use Read)
+  
+  ## Supported File Types:
+  java, py, js, ts, rust, go, cpp, md, json, xml, yaml, sql, sh, css, html
+  
+  ## Output Format Examples:
+  - content mode: "223:    public void method() {" (match with colon), "224-        // code" (context with dash)
+  - count mode: "/path/to/file.java: 5 matches"
+  
+  ## Pattern Notes:
+  - Ripgrep syntax (not grep): Literal braces need escaping (use interface\\{\\} to find interface{})
+  - Patterns match within single lines by default; use multiline=true for cross-line patterns
+  - Results capped to several thousand lines for performance; use head_limit to control
+  
+  Keywords: grep, search, find text, regex, ripgrep, rg, pattern matching, text search, exact match
+
+parameters: |
+  {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "The regular expression pattern to search for in file contents (required). Supports full regex syntax: 'log.*Error', 'function\\s+\\w+'. Use | (OR operator) to search multiple patterns: 'Repository|Service|Controller' matches any of these words. For whole words only, use '\\b(word1|word2)\\b'. Literal braces need escaping: use 'interface\\{\\}' to find 'interface{}'"
+      },
+      "path": {
+        "type": "string",
+        "description": "File or directory to search in (rg pattern -- PATH). Defaults to Cursor workspace root if not provided. Can be absolute or relative path"
+      },
+      "glob": {
+        "type": "string",
+        "description": "Glob pattern to filter files (rg --glob). Examples: '*.js' (only .js files), '*.{ts,tsx}' (multiple extensions). For standard file types, 'type' parameter is more efficient"
+      },
+      "type": {
+        "type": "string",
+        "description": "File type to search (rg --type). More efficient than glob for standard types. Supported: js, py, rust, go, java, cpp, md, json, xml, yaml, sql, sh, css, html, ts"
+      },
+      "-i": {
+        "type": "boolean",
+        "description": "Case insensitive search (rg -i). Set to true to ignore case when matching. Default: false"
+      },
+      "output_mode": {
+        "type": "string",
+        "enum": ["content", "count"],
+        "description": "Output mode (default: 'count'). 'content': shows matching lines (supports -A/-B/-C, line numbers, head_limit). 'count': shows match counts per file (supports head_limit)"
+      },
+      "-B": {
+        "type": "integer",
+        "description": "Number of lines to show before each match (rg -B). Only works with output_mode='content', ignored otherwise. Example: -B=3 shows 3 lines before each match"
+      },
+      "-A": {
+        "type": "integer",
+        "description": "Number of lines to show after each match (rg -A). Only works with output_mode='content', ignored otherwise. Example: -A=3 shows 3 lines after each match"
+      },
+      "-C": {
+        "type": "integer",
+        "description": "Number of lines to show before and after each match (rg -C). Shorthand for setting both -A and -B. Only works with output_mode='content', ignored otherwise. Example: -C=2 shows 2 lines before and after"
+      },
+      "multiline": {
+        "type": "boolean",
+        "description": "Enable multiline mode where . matches newlines and patterns can span lines (rg -U --multiline-dotall). Default: false. Use this for patterns like 'struct \\{[\\s\\S]*?field' that need to match across line boundaries"
+      },
+      "head_limit": {
+        "type": "integer",
+        "description": "Limit output to first N lines/entries, equivalent to '| head -N'. Works across all output modes: content (limits output lines), count (limits count entries). Default: 1000. When unspecified, shows all results from ripgrep"
+      }
+    },
+    "required": ["pattern"]
+  }

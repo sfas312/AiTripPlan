@@ -1,0 +1,12 @@
+description: |
+  清除所有待处理的函数（尚未有结果的函数）。
+  这将把所有已注册但尚未执行的函数标记为已清除。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.imooc</groupId>
+    <artifactId>Demo-MCP</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <modules>
+<!--    MCP 服务端模块     -->
+        <module>mcp-server</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--
+               ==============
+
+                  为什么使用SpringAi Alibaba, 代替SpringAi
+
+                  1. SpringAi Alibaba 是基于 SpringAi
+                  2. SpringAi Alibaba在SpringAi的基础做了优化,
+                    a. 更好集成国内模型：DeepSeek, Qwen3
+                    b. 和阿里云百炼模型平台, 有深度的集成
+                  3. SpringAi可以看作底层的Ai应用开发框架,
+                    SpringAi Alibaba 倾向于Ai智能体(Ai Agent)的开发框架
+                    a. 智能体的编排工作流
+                    b. 适配多个智能体协作场景
+                    c. 和阿里云的智能体应用平台有深度集成
+                    d. 提供了RAG知识库的解决方案
+                    e. 提供了分布式的MCP的方案
+
+               ==============
+       -->
+
+        <!--    最低版本必须是 > 1.0.0-m6 ,  因为从1.0.0-m6开始才集成MCP   -->
+
+<!--  SpringAi Alibaba 的版本号      -->
+        <spring-ai-alibaba.version>1.0.0.2</spring-ai-alibaba.version>
+<!--  SpringAi 的版本号      -->
+        <spring-ai.version>1.0.0</spring-ai.version>
+
+    </properties>
+
+    <!--
+
+      ==============
+
+     bom依赖，起到的是版本的统一管理
+
+     注意：bom依赖必须放在 <dependencyManagement>标签内
+
+
+      ==============
+
+    -->
+    <dependencyManagement>
+        <dependencies>
+<!--   SpringAi Alibaba 的版本管理         -->
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+<!--   SpringAi 的版本管理         -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+<!-- MCP的底层依赖   -->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-mcp</artifactId>
+        </dependency>
+
+    </dependencies>
+
+
+
+
+</project>

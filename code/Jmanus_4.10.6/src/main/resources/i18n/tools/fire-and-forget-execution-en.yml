@@ -1,0 +1,31 @@
+description: |
+  Start async execution of all registered functions without waiting for results (fire-and-forget pattern).
+  Executes all pending functions that were registered using register-batch-execution.
+  This tool immediately returns success status while execution continues in the background.
+  Use this when you don't need to wait for execution results and want to continue with other tasks.
+  Optional timer parameters allow scheduling execution for a future time. If no timer is specified, execution starts immediately.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "day": {
+              "type": "integer",
+              "description": "Number of days to delay execution (optional). Execution starts immediately if not specified."
+          },
+          "hour": {
+              "type": "integer",
+              "description": "Number of hours to delay execution (optional). Execution starts immediately if not specified."
+          },
+          "minute": {
+              "type": "integer",
+              "description": "Number of minutes to delay execution (optional). Execution starts immediately if not specified."
+          },
+          "second": {
+              "type": "integer",
+              "description": "Number of seconds to delay execution (optional). Execution starts immediately if not specified."
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }

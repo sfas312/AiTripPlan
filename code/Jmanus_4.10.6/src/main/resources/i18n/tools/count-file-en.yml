@@ -1,0 +1,30 @@
+description: |
+  Count the total lines and characters in a given file. This tool provides detailed statistics
+  about text-based files including line count, character count (with and without newlines),
+  word count, and file size.
+  
+  Important: Files are read from rootPlanId/ directory, same as GlobalFileOperator and
+  MarkdownConverterTool. For example, to count rootPlanId/projects.md, use file_path "projects.md".
+  
+  Supported file types: All text-based formats including markdown, code files, HTML, JSON, YAML, etc.
+  
+  The tool provides the following statistics:
+  - Total Lines: Number of lines in the file
+  - Total Characters (including newlines): File size in bytes/characters
+  - Total Characters (excluding newlines): Sum of all line lengths
+  - Total Words: Number of words (split by whitespace)
+  - File Size: File size in bytes
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the file to count (relative to rootPlanId/ directory, e.g., 'file.md' or 'subdir/file.md')"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

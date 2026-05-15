@@ -1,0 +1,29 @@
+description: |
+  统计给定文件的总行数和字符数。此工具提供基于文本文件的详细统计信息，包括行数、字符数（包含和不包含换行符）、
+  单词数和文件大小。
+  
+  重要提示：文件从 rootPlanId/ 目录读取，与 GlobalFileOperator 和 MarkdownConverterTool 相同。
+  例如，要统计 rootPlanId/projects.md，请使用 file_path "projects.md"。
+  
+  支持的文件类型：所有基于文本的格式，包括 markdown、代码文件、HTML、JSON、YAML 等。
+  
+  该工具提供以下统计信息：
+  - 总行数：文件中的行数
+  - 总字符数（包含换行符）：文件大小（字节/字符）
+  - 总字符数（不包含换行符）：所有行长度的总和
+  - 总单词数：单词数量（按空白字符分割）
+  - 文件大小：文件大小（字节）
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "要统计的文件路径（相对于 rootPlanId/ 目录，例如 'file.md' 或 'subdir/file.md'）"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

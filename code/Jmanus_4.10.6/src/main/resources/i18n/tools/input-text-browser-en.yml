@@ -1,0 +1,20 @@
+description: |
+  Input text in an element. Use this tool to enter text into input fields or text areas.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "index": {
+              "type": "integer",
+              "description": "Element index to input text. This corresponds to the idx value (e.g., idx=39) shown in the ARIA snapshot for each interactive element."
+          },
+          "text": {
+              "type": "string",
+              "description": "Text to input"
+          }
+      },
+      "required": ["index", "text"],
+      "additionalProperties": false
+  }
+

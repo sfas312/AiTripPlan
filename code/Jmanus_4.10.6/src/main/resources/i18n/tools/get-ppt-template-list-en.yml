@@ -1,0 +1,12 @@
+description: |
+  Get available template list. Returns template information in JSON format.
+  Templates are located in the extensions/pptGenerator/template directory.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

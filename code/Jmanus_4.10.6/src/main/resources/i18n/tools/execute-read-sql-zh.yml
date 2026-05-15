@@ -1,0 +1,26 @@
+description: |
+  执行 SELECT 查询（仅只读操作）。在需要查询数据库信息时使用此工具。
+  
+  重要提示：查询 NULL 值时，请显式使用 NULL 关键字（例如，WHERE email IS NULL）。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "query": {
+              "type": "string",
+              "description": "要执行的 SELECT 查询语句（只读）"
+          },
+          "datasourceName": {
+              "type": "string",
+              "description": "数据源名称，可选"
+          },
+          "parameters": {
+              "type": "array",
+              "description": "SQL 参数用于预编译语句（可选）"
+          }
+      },
+      "required": ["query"],
+      "additionalProperties": false
+  }
+

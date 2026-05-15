@@ -1,0 +1,11 @@
+description: |
+  Get current page ARIA snapshot content. This tool extracts the accessible content structure of the current page.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

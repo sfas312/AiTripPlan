@@ -1,0 +1,35 @@
+description: |
+  从外部链接目录（linked_external 文件夹）删除现有文件。此操作符提供对链接到根计划目录的外部文件夹中的文件的访问。
+
+  **前置条件：**
+  - 使用此操作符前，必须在系统设置中配置外部文件夹
+  - 在系统设置中设置 'lynxe.general.externalLinkedFolder' 指向您的外部文件夹
+  - 如果已配置，计划启动时将自动创建外部文件夹链接
+  - 如果未配置 external_link，操作将失败并显示清晰的错误消息，提示缺少配置
+
+  关键词：外部文件、external_link、linked_external、外部文件夹、外部文件删除操作、删除文件。
+
+  操作：
+  - 从 external_link 目录删除现有文件
+    - file_path（必需）：external_link 目录内的相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）
+    - 如果文件不存在，返回错误
+
+  功能特性：
+  - 在此处删除的文件可在执行上下文中的所有子计划中访问
+  - 删除前验证文件是否存在
+  - 文件从链接到根计划目录的外部文件夹中删除
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "external_link 目录内的相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+
+

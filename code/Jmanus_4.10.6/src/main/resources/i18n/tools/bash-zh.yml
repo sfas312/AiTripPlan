@@ -1,0 +1,32 @@
+description: |
+  在终端中执行bash命令，支持交互式操作（当前操作系统：%s）。
+  * 基于操作的接口：支持的操作包括：'command'（执行新命令）、'send_input'（向交互式进程发送输入）、'terminate'（停止当前进程）。
+  * 工作目录：所有命令都在 root-plan-folder 目录下执行。所有操作都应使用相对于 root-plan-folder 的路径。例如，要运行 'folder1/abc.sh'，应使用 'folder1/abc.sh' 或 'cd folder1 && ./abc.sh'。请勿使用 'cd folder1' 然后单独执行 './abc.sh'，因为每个命令都从 root-plan-folder 开始执行。
+  * 路径限制：命令中的所有文件和目录路径都被限制在 root-plan-folder 内。不允许使用 root-plan-folder 外的绝对路径。使用 '..' 试图离开 root-plan-folder 的路径将被阻止。所有文件操作都应使用相对于 root-plan-folder 的路径。
+  * 分页器已禁用：所有分页器（more、less、git pager等）已通过环境变量自动禁用（PAGER=cat, GIT_PAGER=cat）。命令将直接输出所有内容，无需分页。请勿使用 'more'、'less' 或任何分页器相关命令，因为它们在此环境中无法正常工作。对于git命令，请使用 'git --no-pager log'、'git --no-pager diff' 等，明确禁用分页器。
+  * 长时间运行的命令：对于可能无限期运行的命令，应该在后台运行并将输出重定向到文件，例如：command = `python3 app.py > server.log 2>&1 &`。
+  * 进程管理：使用 'terminate' 停止正在运行的进程。进程状态会自动跟踪并在工具状态中可用。
+  * 超时处理：如果命令执行结果显示"Command timed out. Sending SIGINT to the process"，助手应该尝试在后台重新运行该命令。
+  * 大输出：如果命令输出很长，将自动保存到文件并返回摘要。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "action": {
+              "type": "string",
+              "description": "要执行的操作。支持的操作：'command'（执行新的shell命令）、'send_input'（向当前交互式进程发送输入）、'terminate'（终止当前进程）。如果未指定，为向后兼容性默认为 'command'。",
+              "enum": ["command", "send_input", "terminate"]
+          },
+          "command": {
+              "type": "string",
+              "description": "要执行的bash命令。'command' 操作必需。注意，所有的操作都不要使用pager。"
+          },
+          "input": {
+              "type": "string",
+              "description": "发送到当前交互式进程的输入。'send_input' 操作必需。示例：'\\n' 或 'Enter' 表示回车键。"
+          }
+      },
+      "required": []
+  }
+

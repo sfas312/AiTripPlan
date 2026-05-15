@@ -1,0 +1,31 @@
+description: |
+  创建带有表头的新表格。支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式。
+  
+  自动将 ID 列添加为表格的第一列。
+  文件路径应使用相对路径，使用绝对路径会导致错误。
+  所有内容都作为字符串处理。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "要创建的表格文件路径（相对路径）"
+          },
+          "sheet_name": {
+              "type": "string",
+              "description": "工作表名称"
+          },
+          "headers": {
+              "type": "array",
+              "items": {
+                  "type": "string"
+              },
+              "description": "表头列表（不包括 ID 列，ID 列将自动添加）"
+          }
+      },
+      "required": ["file_path", "headers"],
+      "additionalProperties": false
+  }
+

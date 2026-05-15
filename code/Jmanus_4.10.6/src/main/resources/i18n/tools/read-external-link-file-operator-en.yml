@@ -1,0 +1,60 @@
+description: |
+  Read file contents from the external_link directory (linked_external folder). This operator provides access to files
+  in the external folder that is linked to the root plan directory.
+
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this operator
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+
+  Keywords: external files, external_link, linked_external, external folder,
+  external file read operations, external directory access.
+
+  Main operation:
+  - Read file contents from external_link directory with optional offset and limit parameters
+    - path (required): The file path to read within the external_link directory
+    - offset (optional): Line number to start reading from (1-based). Only use for very large files
+    - limit (optional): Number of lines to read. Only use for very large files
+    - bypass_limit (optional): If true, bypasses the 300-line limit for full file reads. Use with caution for very large files
+    - Output format: LINE_NUMBER|LINE_CONTENT (line numbers are right-aligned, padded to 6 characters)
+    - Returns "File is empty." if file exists but is empty
+    - Best practice: Read full files unless extremely large (omit offset and limit). For files exceeding 300 lines, use bypass_limit=true or specify offset/limit
+
+  Features:
+  - Supports text files in the external folder
+  - Files in external_link directory are accessible across all sub-plans within the execution context
+  - Can read multiple files in parallel for better performance
+  
+  ## File Reading Best Practices:
+  Prioritize small-scope information retrieval:
+  1. **Use EnhancedGrep**: For searching specific patterns or keywords in files (most efficient for targeted information)
+  2. **Use offset/limit**: Read specific line ranges when you know approximate location
+  3. **Use bypass_limit**: Only when you cannot obtain needed information through grep or limited reading, and you need the entire file content
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "path": {
+              "type": "string",
+              "description": "The file path to read within the external_link directory (relative path from external folder, e.g., 'file.txt' or 'subdir/file.txt')"
+          },
+          "offset": {
+              "type": "integer",
+              "description": "Optional: Line number to start reading from (1-based). Only use for very large files that can't be read all at once"
+          },
+          "limit": {
+              "type": "integer",
+              "description": "Optional: Number of lines to read. Only use for very large files. Works with offset for partial file reading"
+          },
+          "bypass_limit": {
+              "type": "boolean",
+              "description": "Optional: If true, bypasses the 300-line limit for full file reads. Use with caution for very large files. Default: false"
+          }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+  }
+
+

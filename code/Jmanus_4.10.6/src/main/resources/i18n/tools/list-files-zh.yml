@@ -1,0 +1,21 @@
+description: |
+  列出本地文件系统中的文件和目录。此工具提供对目录列表的访问，可以在同一执行上下文中的所有子计划中访问。
+  
+  列出指定路径中的文件和目录。
+  以人类可读的格式显示文件大小（B、KB、MB、GB）。
+  可以列出根计划级别或子目录中的目录。
+  文件和目录按字母顺序排序。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "path": {
+              "type": "string",
+              "description": "要列出的相对目录路径（可选，默认为根目录，例如 'subdir' 或空字符串表示根目录）"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

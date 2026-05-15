@@ -1,0 +1,28 @@
+logging:   # SpringBoot日志配置
+  level:
+    # ChatClient 监控日志的等级
+    org.springframework.ai.chat.client.advisor: debug
+
+spring:
+  ai:
+    dashscope:
+      # 阿里百炼大模型服务平台 API-Key申请文档
+      # https://help.aliyun.com/zh/model-studio/get-api-key
+      api-key: 你的ApiKey
+      chat:
+        options:
+          model: deepseek-r1  # 指定DeepSeek的模型名称
+
+### 这里要启动 MCP Server, 才能打开以下注释, 否则会报错
+    # MCP 客户端
+#    mcp:
+#      client:
+#        sse:
+#          connections:
+#            # MCP 服务端的名称
+#            imooc-weather-mcp-server:
+#              url: http://localhost:8081
+#       # 必须添加以下配置
+#        toolcallback:
+#          enabled: true
+#

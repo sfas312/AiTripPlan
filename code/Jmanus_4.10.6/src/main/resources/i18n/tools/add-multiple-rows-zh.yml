@@ -1,0 +1,32 @@
+description: |
+  向表格添加一行或多行数据。支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式。
+  
+  可用于添加单行（传递包含一个元素的数组）或多行。
+  每行数据必须与表头列数匹配（不包括 ID 列）。
+  对于每一行：如果以有效的现有 ID 开头，将更新该行；
+  如果以不存在的 ID 开头，将作为新行插入；
+  如果未指定 ID 或 ID 无效，将自动生成新 ID。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "表格文件路径"
+          },
+          "multiple_rows_data": {
+              "type": "array",
+              "items": {
+                  "type": "array",
+                  "items": {
+                      "type": "string"
+                  }
+              },
+              "description": "要写入的行数据列表（可以是单行或多行），每行数据必须与表头数量匹配"
+          }
+      },
+      "required": ["file_path", "multiple_rows_data"],
+      "additionalProperties": false
+  }
+

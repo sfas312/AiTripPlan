@@ -1,0 +1,16 @@
+description: |
+  点击下载链接并将文件保存到指定目录。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "index": {
+              "type": "integer",
+              "description": "要点击的下载链接或按钮的元素索引。这对应于 ARIA 快照中每个交互元素显示的 idx 值（例如 idx=39）。"
+          }
+      },
+      "required": ["index"],
+      "additionalProperties": false
+  }
+

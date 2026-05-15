@@ -1,0 +1,12 @@
+description: |
+  Clear all pending functions (functions with no result yet).
+  This will mark all registered but not yet executed functions as cleared.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

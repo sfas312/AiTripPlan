@@ -1,0 +1,26 @@
+description: |
+  Delete specified rows from a table based on row indices. Supports Excel (.xlsx, .xls) and CSV (.csv) formats.
+  
+  Row indices are 0-based, excluding the header row.
+  Multiple rows can be deleted in a single operation.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the table file from which rows will be deleted"
+          },
+          "row_indices": {
+              "type": "array",
+              "items": {
+                  "type": "integer"
+              },
+              "description": "List of row indices to delete (starting from 0, excluding header)"
+          }
+      },
+      "required": ["file_path", "row_indices"],
+      "additionalProperties": false
+  }
+

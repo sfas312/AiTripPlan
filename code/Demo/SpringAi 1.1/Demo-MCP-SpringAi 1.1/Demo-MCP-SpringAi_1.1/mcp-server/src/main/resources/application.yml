@@ -1,0 +1,15 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: imooc-weather-mcp-server-springAi_1.1
+  ai:
+    mcp:
+      server:
+        # MCP服务器名称
+        name: imooc-weather-mcp-server-springAi_1.1
+        version: 0.0.1
+        type: SYNC
+        protocol: STREAMABLE
+        annotation-scanner:
+          enabled: true

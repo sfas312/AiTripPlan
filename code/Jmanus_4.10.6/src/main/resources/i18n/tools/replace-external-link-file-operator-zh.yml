@@ -1,0 +1,50 @@
+description: |
+  在外部链接目录（linked_external 文件夹）中的现有文件中执行精确字符串替换。
+  此操作符提供对链接到根计划目录的外部文件夹中的文件的访问。
+
+  **前置条件：**
+  - 使用此操作符前，必须在系统设置中配置外部文件夹
+  - 在系统设置中设置 'lynxe.general.externalLinkedFolder' 指向您的外部文件夹
+  - 如果已配置，计划启动时将自动创建外部文件夹链接
+  - 如果未配置 external_link，操作将失败并显示清晰的错误消息，提示缺少配置
+
+  关键词：外部文件、external_link、linked_external、外部文件夹、外部文件替换操作、替换文本、StrReplace。
+
+  操作：
+  - 在 external_link 目录中执行精确的、有针对性的编辑，无需重写整个文件
+    - file_path（必需）：external_link 目录内的相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）。如果文件不存在，将自动创建。
+    - old_string（必需）：要查找和替换的确切文本。必须与文件内容完全匹配（包括所有空白字符、缩进、换行符）。必须在文件中唯一 - 如果存在多个匹配项，请提供更多上下文以使其唯一。
+    - new_string（必需）：要替换的文本。必须与 old_string 不同。可以是空字符串以删除内容。
+    - 重要：old_string 必须在文件中唯一（如果找到多个匹配项将失败）
+    - 匹配区分大小写和空白字符（必须完全匹配，包括缩进）
+    - 仅替换第一个（也是唯一的）匹配项
+
+  功能特性：
+  - 在此处创建的文件可在执行上下文中的所有子计划中访问
+  - 精确匹配确保精确替换
+  - 唯一性验证防止意外多次替换
+  - 如果文件不存在，将自动创建
+  - 文件存储在链接到根计划目录的外部文件夹中
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "external_link 目录内的相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）。如果文件不存在，将自动创建。"
+          },
+          "old_string": {
+              "type": "string",
+              "description": "要查找和替换的确切文本。必须与文件内容完全匹配（包括所有空白字符、缩进、换行符）。必须在文件中唯一 - 如果存在多个匹配项，请提供更多上下文以使其唯一。"
+          },
+          "new_string": {
+              "type": "string",
+              "description": "要替换的文本。必须与 old_string 不同。可以是空字符串以删除内容。"
+          }
+      },
+      "required": ["file_path", "old_string", "new_string"],
+      "additionalProperties": false
+  }
+
+

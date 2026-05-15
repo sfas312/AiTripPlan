@@ -1,0 +1,19 @@
+description: |
+  Get content of specified template. Returns template content in JSON format.
+  The template path must be a preset template path and exist in the content returned by get-ppt-template-list.
+  The returned JSON contains all text elements from the template that can be modified.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "path": {
+              "type": "string",
+              "description": "Template file path to retrieve. Must be a preset template path and exist in the content returned by get-ppt-template-list.",
+              "minLength": 1
+          }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+  }
+

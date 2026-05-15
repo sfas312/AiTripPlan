@@ -1,0 +1,10 @@
+server:
+  port: 8081
+spring:
+  ai:
+    dashscope:
+      api-key: 你的api-key
+      chat:
+        options:
+          model: deepseek-r1  # 指定DeepSeek的模型名称
+         # model: qwen-max

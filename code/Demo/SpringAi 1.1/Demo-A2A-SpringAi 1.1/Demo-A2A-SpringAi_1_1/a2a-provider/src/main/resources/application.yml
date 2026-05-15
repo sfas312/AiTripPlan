@@ -1,0 +1,27 @@
+server:
+  port: 8181
+
+spring:
+  application:
+    name: imooc-springAi_1.1_a2a_provider
+  ai:
+    dashscope:
+      api-key: 你的ApiKey
+      chat:
+        options:
+          model: qwen-max
+    alibaba:
+      a2a:
+        nacos:
+          server-addr: 127.0.0.1:8848
+          username: nacos
+          password: nacos
+          registry:
+            enabled: true
+        server:
+          version: 1.0.0
+          card:
+            # 智能体卡片的name 要和 Agent的name 一致
+            name: AgentProvider
+            description: "imooc智能体"
+            version: "1.0.0"

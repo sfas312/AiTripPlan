@@ -1,0 +1,29 @@
+description: |
+  Delete an existing file from the local filesystem. This operator provides access to files
+  that can be accessed across all sub-plans within the same execution context.
+
+  Keywords: global files, root directory, root folder, root plan directory,
+  global file write operations, root file access, cross-plan files, delete file.
+
+  Operation:
+  - Delete an existing file
+    - file_path (required): Relative file path (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt')
+    - Returns error if file does not exist
+
+  Features:
+  - Files deleted here are accessible by all sub-plans within the execution context
+  - Validates file existence before deletion
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Relative file path (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt')"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

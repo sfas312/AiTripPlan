@@ -1,0 +1,36 @@
+description: |
+  Count the total lines and characters in a given file in the external_link directory (linked_external folder). This tool provides detailed statistics
+  about text-based files including line count, character count (with and without newlines),
+  word count, and file size.
+  
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this tool
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+
+  Important: Files are read from the external_link directory (linked_external folder).
+  For example, to count a file in external_link, use file_path "file.md" or "subdir/file.md".
+  
+  Supported file types: All text-based formats including markdown, code files, HTML, JSON, YAML, etc.
+  
+  The tool provides the following statistics:
+  - Total Lines: Number of lines in the file
+  - Total Characters (including newlines): File size in bytes/characters
+  - Total Characters (excluding newlines): Sum of all line lengths
+  - Total Words: Number of words (split by whitespace)
+  - File Size: File size in bytes
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the file to count within the external_link directory (relative path from external folder, e.g., 'file.md' or 'subdir/file.md')"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

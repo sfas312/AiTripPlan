@@ -1,0 +1,11 @@
+description: |
+  捕获当前页面的截图。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

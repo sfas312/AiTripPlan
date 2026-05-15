@@ -1,0 +1,27 @@
+description: |
+  Search for rows matching keywords in a table. Supports Excel (.xlsx, .xls) and CSV (.csv) formats.
+  
+  Returns all rows that contain any of the specified keywords in any cell.
+  The header row is excluded from search results.
+  Matching rows are returned without the ID column.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the table file"
+          },
+          "keywords": {
+              "type": "array",
+              "items": {
+                  "type": "string"
+              },
+              "description": "List of search keywords"
+          }
+      },
+      "required": ["file_path", "keywords"],
+      "additionalProperties": false
+  }
+

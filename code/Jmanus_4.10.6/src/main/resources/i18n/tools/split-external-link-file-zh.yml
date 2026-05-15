@@ -1,0 +1,37 @@
+description: |
+  在外部链接目录（linked_external 文件夹）中将文本文件（markdown、代码、HTML 等）拆分为更小的片段。此工具有助于将大型文本文件分解为可管理的块，同时保持内容的完整性。
+  
+  **前置条件：**
+  - 使用此工具前，必须在系统设置中配置外部文件夹
+  - 在系统设置中设置 'lynxe.general.externalLinkedFolder' 指向您的外部文件夹
+  - 如果已配置，计划启动时将自动创建外部文件夹链接
+  - 如果未配置 external_link，操作将失败并显示清晰的错误消息，提示缺少配置
+
+  重要提示：文件从 external_link 目录（linked_external 文件夹）读取。
+  例如，要拆分 external_link 中的文件，请使用 file_path "file.md" 或 "subdir/file.md"。
+  
+  文件被拆分为较小的片段（尽可能按行均匀分配）。默认情况下，文件被拆分为 10 个片段。
+  原则上你应该保持每个切分后的文件在20000个字符内。
+  输出文件保存在与源文件相同的目录中，使用索引前缀命名：0-filename.ext、1-filename.ext 等。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "要在 external_link 目录中拆分的文件路径（相对于外部文件夹的相对路径，例如 'file.md' 或 'subdir/file.md'）"
+          },
+          "header": {
+              "type": "string",
+              "description": "可选，添加到每个拆分文件开头的标题文本"
+          },
+          "split_count": {
+              "type": "integer",
+              "description": "可选，指定要将文件拆分成的片段数量（默认值：10）。必须为正整数。"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

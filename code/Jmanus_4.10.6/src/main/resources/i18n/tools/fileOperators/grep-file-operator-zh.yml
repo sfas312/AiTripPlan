@@ -1,0 +1,54 @@
+description: |
+  在文件中搜索文本模式，类似于 Linux grep 命令。此操作符提供对可在同一执行上下文中的所有子计划中访问的文件的访问。
+
+  关键词：全局文件、根目录、根文件夹、根计划目录、全局文件读取操作、根文件访问、跨计划文件、grep、搜索、模式匹配。
+
+  操作：
+  - 在文件中搜索文本模式
+    - file_path（必需）：相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）
+    - pattern（必需）：要搜索的文本模式
+    - case_sensitive（可选）：是否执行区分大小写的搜索（默认：false）
+    - whole_word（可选）：是否仅匹配完整单词（默认：false）
+    - context_lines（可选）：显示匹配行上下指定行数的上下文（默认：0，不显示上下文）
+    - 返回匹配的行及其行号，以及可选的上下文
+
+  功能特性：
+  - 在此处创建的文件可在执行上下文中的所有子计划中访问
+  - 支持区分大小写和不区分大小写的搜索
+  - 支持完整单词匹配
+  - 支持显示匹配行周围的上下文
+  
+  模式转义注意事项：
+  - 对于包含特殊字符的正则表达式模式，需要使用正确的转义
+  - 字面量花括号：使用单反斜杠 `\{planId\}` 而不是双反斜杠 `\\{planId\\}` 来匹配 `{planId}`
+  - 常见错误："Illegal repetition"（非法重复）通常表示花括号转义错误 - 使用 `\{` 而不是 `\\{`
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）"
+          },
+          "pattern": {
+              "type": "string",
+              "description": "要搜索的文本模式。对于包含花括号的正则表达式模式，使用单反斜杠转义：'\\{planId\\}' 来匹配 '{planId}'（不要使用 '\\\\{planId\\\\}'）。双反斜杠会导致 'Illegal repetition'（非法重复）错误。"
+          },
+          "case_sensitive": {
+              "type": "boolean",
+              "description": "是否执行区分大小写的搜索（默认：false）"
+          },
+          "whole_word": {
+              "type": "boolean",
+              "description": "是否仅匹配完整单词（默认：false）"
+          },
+          "context_lines": {
+              "type": "integer",
+              "description": "显示匹配行上下指定行数的上下文（默认：0，不显示上下文）"
+          }
+      },
+      "required": ["file_path", "pattern"],
+      "additionalProperties": false
+  }
+

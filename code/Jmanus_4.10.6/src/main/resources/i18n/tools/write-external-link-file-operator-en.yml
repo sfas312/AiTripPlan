@@ -1,0 +1,46 @@
+description: |
+  Create new files or overwrite existing files completely in the external_link directory (linked_external folder).
+  This operator provides access to files in the external folder that is linked to the root plan directory.
+
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this operator
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+
+  Keywords: external files, external_link, linked_external, external folder,
+  external file write operations, write file, create file.
+
+  Operation:
+  - Create new files or overwrite existing files completely in external_link directory
+    - file_path (required): Relative file path within external_link directory (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt'). Parent directories will be created automatically if they don't exist.
+    - contents (required): The complete content to write to the file. This will be the entire file content after the operation. If file exists, all previous content will be overwritten.
+    - Creates new files if they don't exist
+    - Completely overwrites existing files (all previous content is lost)
+    - Automatically creates parent directories if they don't exist
+    - MUST read file first before overwriting to prevent accidental data loss
+    - Prefer StrReplace for editing existing files when possible
+    - Only use Write for creating new files or complete file rewrites
+
+  Features:
+  - Files created here are accessible by all sub-plans within the execution context
+  - Automatically creates parent directories if they don't exist
+  - Files are stored in the external folder linked to the root plan directory
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Relative file path within external_link directory (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt'). Parent directories will be created automatically if they don't exist."
+          },
+          "contents": {
+              "type": "string",
+              "description": "The complete content to write to the file. This will be the entire file content after the operation. If file exists, all previous content will be overwritten."
+          }
+      },
+      "required": ["file_path", "contents"],
+      "additionalProperties": false
+  }
+

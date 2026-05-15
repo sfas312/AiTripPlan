@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/openlynxe_db
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: 123456
+  ai:
+    memory:
+      postgres:
+        enabled: true
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update

@@ -1,0 +1,21 @@
+description: |
+  Get complete metadata of table structure, fields, and indexes.
+  Use this tool when you need to understand table structure for writing SQL queries, analyzing database design, or generating documentation.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "text": {
+              "type": "string",
+              "description": "Fuzzy search table description, leave empty to get all tables"
+          },
+          "datasourceName": {
+              "type": "string",
+              "description": "Data source name, optional"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

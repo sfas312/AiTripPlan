@@ -1,0 +1,44 @@
+description: |
+  Convert markdown files to DOCX (Word document) format. This tool provides access to files
+  in the root plan directory and converts markdown content to DOCX format with proper formatting
+  including headers, lists, tables, code blocks, and more.
+
+  Keywords: markdown to docx, markdown to word, convert markdown, docx conversion,
+  word document conversion, root directory files, root plan folder.
+
+  Main operation:
+  - Convert markdown file (.md or .markdown) to DOCX format
+    - path (required): The markdown file path to convert (relative path in root plan directory)
+    - output_path (optional): Output DOCX file path. If not provided, uses the same name as input with .docx extension
+    - Output file is saved in the root plan directory (rootPlanId/)
+    - Supports markdown features: headers, lists, tables, code blocks, horizontal rules, inline formatting
+
+  Features:
+  - Converts markdown files to Word document format
+  - Preserves document structure (headers, paragraphs, lists, tables)
+  - Handles code blocks with monospace font
+  - Supports both bullet and numbered lists
+  - Converts markdown tables to Word tables
+  - Supports images in markdown format: ![alt text](image_path)
+    - Images are embedded in the Word document
+    - Supports PNG, JPEG, GIF, BMP, WMF, EMF formats
+    - Image paths are resolved relative to root plan directory
+  - Files are saved in the root plan directory for access across all sub-plans
+
+parameters: |
+  {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "The markdown file path to convert (relative path in root plan directory, e.g., 'file.md' or 'subdir/file.md')"
+      },
+      "output_path": {
+        "type": "string",
+        "description": "Optional: Output DOCX file path. If not provided, uses the same name as input file with .docx extension (e.g., 'file.md' -> 'file.docx')"
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  }
+

@@ -1,0 +1,30 @@
+{
+  "title": "默认的用户输入(不要删除这个计划)",
+  "steps": [
+    {
+      "stepRequirement": "<<userRequirement>>",
+      "agentName": "ConfigurableDynaAgent",
+      "modelName": "",
+      "terminateColumns": ""
+    }
+  ],
+  "planType": "dynamic_agent",
+  "planTemplateId": "default-plan-id-001000222",
+  "accessLevel": "readOnly",
+  "serviceGroup": "default",
+  "toolConfig": {
+    "toolName": "默认的用户输入",
+    "toolDescription": "这是一个默认的用户输入计划",
+    "enableInternalToolcall": true,
+    "enableHttpService": false,
+    "enableInConversation": true,
+    "publishStatus": "PUBLISHED",
+    "inputSchema": [
+      {
+        "name": "userRequirement",
+        "description": "用户输入的问题",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,55 @@
+description: |
+  创建和管理结构化任务列表，用于跟踪复杂多步骤任务的进度。
+  当需要将复杂任务分解为更小、可跟踪的步骤时，请使用此工具。
+  每个 todo 项都有一个 id、content 和 status（pending、in_progress 或 completed）。
+  todo 列表按计划存储，并在执行步骤之间持久化。
+  完成 todo 时更新其状态，完成后将其标记为 completed。
+
+  使用指南：
+  - 在处理复杂的多步骤任务（3+ 步骤）时，使用 todo-write 工具创建和管理结构化任务列表。
+  - 将复杂任务分解为具有唯一 ID 的更小、可跟踪的 todo 项。
+  - 在进度中实时更新 todo 状态：开始处理时标记为 "in_progress"，完成时标记为 "completed"。
+  - 每次 todo_write 调用都会替换整个 todo 列表，因此在每次更新中包含所有 todos（包括已完成的）。
+  - 使用 todos 跟踪进度并帮助在多个执行步骤之间保持上下文。
+  - 除非用户询问，否则不要明确向用户提及 todo 管理。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "todos": {
+              "type": "array",
+              "description": "要写入的 todo 项列表。每次调用都会替换整个 todo 列表。",
+              "items": {
+                  "type": "object",
+                  "properties": {
+                      "id": {
+                          "type": "string",
+                          "description": "todo 项的唯一标识符"
+                      },
+                      "content": {
+                          "type": "string",
+                          "description": "todo 项的内容/描述"
+                      },
+                      "status": {
+                          "type": "string",
+                          "description": "todo 项的状态",
+                          "enum": ["pending", "in_progress", "completed"]
+                      }
+                  },
+                  "required": ["id", "content", "status"],
+                  "additionalProperties": false
+              }
+          },
+          "modified_by_user": {
+              "type": "boolean",
+              "description": "todos 是否由用户修改（可选）"
+          },
+          "modified_content": {
+              "type": "string",
+              "description": "修改内容描述（可选，当 modified_by_user 为 true 时使用）"
+          }
+      },
+      "required": ["todos"],
+      "additionalProperties": false
+  }

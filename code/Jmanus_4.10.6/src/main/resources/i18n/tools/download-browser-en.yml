@@ -1,0 +1,16 @@
+description: |
+  Click download link and save file to specified directory.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "index": {
+              "type": "integer",
+              "description": "Element index of the download link or button to click. This corresponds to the idx value (e.g., idx=39) shown in the ARIA snapshot for each interactive element."
+          }
+      },
+      "required": ["index"],
+      "additionalProperties": false
+  }
+

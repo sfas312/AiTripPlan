@@ -1,0 +1,13 @@
+description: |
+  Start parallel execution of all registered functions.
+  Executes all pending functions that were registered using register-batch-execution.
+  Uses asynchronous non-blocking execution to prevent thread pool starvation.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,16 @@
+description: |
+  在浏览器中访问特定 URL。使用此工具导航到网页。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "url": {
+              "type": "string",
+              "description": "要导航到的 URL"
+          }
+      },
+      "required": ["url"],
+      "additionalProperties": false
+  }
+

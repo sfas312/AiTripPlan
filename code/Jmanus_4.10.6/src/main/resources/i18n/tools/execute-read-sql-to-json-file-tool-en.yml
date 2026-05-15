@@ -1,0 +1,30 @@
+description: |
+  Execute SELECT query and save results to JSON file. Use this tool when you need to query database information and save the results to a JSON file.
+  
+  Important: When querying NULL values, use NULL keyword explicitly (e.g., WHERE email IS NULL).
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "query": {
+              "type": "string",
+              "description": "SELECT query statement to execute (read-only)"
+          },
+          "fileName": {
+              "type": "string",
+              "description": "File name (with relative path) to save JSON results, e.g., 'results.json' or 'data/query_results.json'"
+          },
+          "datasourceName": {
+              "type": "string",
+              "description": "Data source name, optional"
+          },
+          "parameters": {
+              "type": "array",
+              "description": "SQL parameters for prepared statements (optional)"
+          }
+      },
+      "required": ["query", "fileName"],
+      "additionalProperties": false
+  }
+

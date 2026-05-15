@@ -1,0 +1,26 @@
+description: |
+  查找匹配 glob 模式的文件。此工具搜索匹配指定 glob 模式的文件，
+  结果按修改时间排序（最近修改的在前）。
+  
+  使用 glob 模式进行快速基于模式的文件发现。
+  支持标准 glob 通配符（*、**、? 等）。
+  默认递归搜索（模式自动添加 **/ 前缀）。
+  不以 "**/" 开头的模式会自动添加 "**/" 前缀以启用递归搜索。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "glob_pattern": {
+              "type": "string",
+              "description": "用于匹配文件的 glob 模式（例如 '*.js'、'**/*.tsx'）。不以 '**/' 开头的模式会自动添加 '**/' 前缀以启用递归搜索"
+          },
+          "target_directory": {
+              "type": "string",
+              "description": "要搜索的相对目录路径（可选，默认为根计划目录）"
+          }
+      },
+      "required": ["glob_pattern"],
+      "additionalProperties": false
+  }
+

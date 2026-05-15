@@ -1,0 +1,27 @@
+description: |
+  Update an existing row in a table based on ID. Supports Excel (.xlsx, .xls) and CSV (.csv) formats.
+  
+  The row data must start with a valid ID that exists in the table.
+  The number of data columns must match the number of header columns (excluding ID column).
+  If the ID doesn't exist, the operation will fail.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the table file"
+          },
+          "row_data": {
+              "type": "array",
+              "items": {
+                  "type": "string"
+              },
+              "description": "Row data to update (must start with a valid ID that exists in the table, and match the number of headers)"
+          }
+      },
+      "required": ["file_path", "row_data"],
+      "additionalProperties": false
+  }
+

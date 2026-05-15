@@ -1,0 +1,16 @@
+description: |
+  Press Enter key on an element. Use this tool to submit forms or trigger actions.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "index": {
+              "type": "integer",
+              "description": "Element index to press enter. This corresponds to the idx value (e.g., idx=39) shown in the ARIA snapshot for each interactive element."
+          }
+      },
+      "required": ["index"],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,88 @@
+#
+# Copyright 2024-2025 the original author or authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+name: 🔍 Check Chinese Content in Lynxe
+
+on:
+  pull_request:
+    paths:
+      - "src/main/java/**/*.java"
+      - "ui-vue3/src/**"
+
+permissions:
+  contents: read
+
+jobs:
+  check-chinese-content:
+    runs-on: ubuntu-latest
+    name: Check for Chinese content in Lynxe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Check Chinese content in Lynxe
+        run: |
+          echo "🔍 Checking for Chinese content in Lynxe Java and frontend files..."
+          echo "📁 Checking directories:"
+          echo "  - src/main/java"
+          echo "  - ui-vue3/src (excluding i18n files)"
+          echo ""
+
+          # Run the unified Chinese content checker script
+          chmod +x tools/scripts/check-chinese-content.py
+
+          if python tools/scripts/check-chinese-content.py --fail-on-found; then
+            echo "✅ No Chinese content found - Check passed!"
+          else
+            echo ""
+            echo "## 🚨 Chinese Content Detected in Lynxe"
+            echo ""
+            echo "Chinese content has been detected in Lynxe Java or frontend files."
+            echo ""
+            echo "### Modification Suggestions:"
+            echo ""
+            echo "1. **Chinese Comments** → Change to English Comments"
+            echo "   Example:"
+            echo "   // ❌ Incorrect: // 这是一个用户服务类"
+            echo "   // ✅ Correct:   // This is a user service class"
+            echo ""
+            echo "2. **Chinese Strings** → Extract to resource files or use English"
+            echo "   Example:"
+            echo "   // ❌ Incorrect: String message = \"用户不存在\";"
+            echo "   // ✅ Correct:   String message = messageSource.getMessage(\"user.not.found\", null, locale);"
+            echo ""
+            echo "3. **Chinese Identifiers** → Use English identifiers"
+            echo "   Example:"
+            echo "   // ❌ Incorrect: String 用户名 = \"admin\";"
+            echo "   // ✅ Correct:   String username = \"admin\";"
+            echo ""
+            echo "4. **Vue Template Content** → Use i18n for internationalization"
+            echo "   Example:"
+            echo "   <!-- ❌ Incorrect: <div>用户管理</div> -->"
+            echo "   <!-- ✅ Correct:   <div>{{ \$t('user.management') }}</div> -->"
+            echo ""
+            echo "**Note:** i18n configuration files are automatically excluded from this check."
+            echo ""
+            echo "Please fix the Chinese content issues and commit the changes."
+            exit 1
+          fi

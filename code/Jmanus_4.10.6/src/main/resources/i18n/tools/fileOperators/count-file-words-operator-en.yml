@@ -1,0 +1,29 @@
+description: |
+  Count characters in a file. This operator provides access to files
+  that can be accessed across all sub-plans within the same execution context.
+
+  Keywords: global files, root directory, root folder, root plan directory,
+  global file read operations, root file access, cross-plan files, count characters.
+
+  Operation:
+  - Count characters in file
+    - file_path (required): Relative file path (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt')
+    - Returns total character count in the file
+
+  Features:
+  - Files created here are accessible by all sub-plans within the execution context
+  - Automatically creates the file if it doesn't exist
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Relative file path (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt')"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.imooc</groupId>
+    <artifactId>Demo-MCP-SpringAi_1.1</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>mcp-server</module>
+    </modules>
+
+    <properties>
+
+        <!--  SpringAi Alibaba 的版本号      -->
+        <spring-ai-alibaba.version>1.1.0.0-RC2</spring-ai-alibaba.version>
+        <!--  SpringAi 的版本号      -->
+        <spring-ai.version>1.1.0</spring-ai.version>
+
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+        <!--   SpringAi Alibaba 的 bom 版本管理        -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-bom</artifactId>
+            <version>${spring-ai-alibaba.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+
+        <!--   SpringAi 的 bom 版本管理         -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-bom</artifactId>
+            <version>${spring-ai.version}</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+
+        </dependencies>
+
+    </dependencyManagement>
+
+    <dependencies>
+
+
+<!--
+
+SpringAi 1.0 版本需要导入MCP底层依赖 (Spring-ai-MCP) 才能支持MCP协议 MCP版本号是0.10
+SpringAi 1.1 版本把MCP底层依赖整合进依赖包，不需要导入MCP底层依赖，就能直接支持MCP协议 MCP版本号是0.14
+
+     -->
+
+        <!-- Spring AI Alibaba Agent Framework -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-agent-framework</artifactId>
+        </dependency>
+
+    </dependencies>
+
+</project>

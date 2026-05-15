@@ -1,0 +1,17 @@
+description: |
+  获取数据源信息，包括数据库产品名称、版本、驱动信息、连接 URL 和可用数据源。
+  在需要检查数据库连接配置、了解数据库版本和驱动信息或排查连接问题时使用此工具。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "datasourceName": {
+              "type": "string",
+              "description": "数据源名称，留空以获取所有可用数据源"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

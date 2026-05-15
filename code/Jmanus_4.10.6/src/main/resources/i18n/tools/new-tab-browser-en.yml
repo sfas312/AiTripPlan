@@ -1,0 +1,16 @@
+description: |
+  Open a new tab with specified URL.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "url": {
+              "type": "string",
+              "description": "URL to open in new tab"
+          }
+      },
+      "required": ["url"],
+      "additionalProperties": false
+  }
+

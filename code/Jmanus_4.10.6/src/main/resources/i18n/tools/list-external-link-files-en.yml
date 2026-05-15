@@ -1,0 +1,28 @@
+description: |
+  List files and directories from the external_link directory (linked_external folder). This tool provides access to directory
+  listings in the external folder that can be accessed across all sub-plans within the same execution context.
+  
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this tool
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+
+  Lists both files and directories in the specified path within the external_link directory.
+  Shows file sizes in human-readable format (B, KB, MB, GB).
+  Can list directories at root level or in subdirectories of the external folder.
+  Files and directories are sorted alphabetically.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "path": {
+              "type": "string",
+              "description": "Relative directory path to list within the external_link directory (optional, defaults to root, e.g., 'subdir' or empty for root)"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

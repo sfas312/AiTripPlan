@@ -1,0 +1,37 @@
+description: |
+  Delete an existing file from the external_link directory (linked_external folder). This operator provides access to files
+  in the external folder that is linked to the root plan directory.
+
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this operator
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+
+  Keywords: external files, external_link, linked_external, external folder,
+  external file delete operations, delete file.
+
+  Operation:
+  - Delete an existing file from external_link directory
+    - file_path (required): Relative file path within external_link directory (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt')
+    - Returns error if file does not exist
+
+  Features:
+  - Files deleted here are accessible by all sub-plans within the execution context
+  - Validates file existence before deletion
+  - Files are deleted from the external folder linked to the root plan directory
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Relative file path within external_link directory (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt')"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+
+

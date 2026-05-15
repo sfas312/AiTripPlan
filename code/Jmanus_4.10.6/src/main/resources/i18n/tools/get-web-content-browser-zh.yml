@@ -1,0 +1,11 @@
+description: |
+  获取当前页面的 ARIA 快照内容。此工具提取当前页面的可访问内容结构。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,26 @@
+description: |
+  根据行索引从表格中删除指定行。支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式。
+  
+  行索引从 0 开始，不包括表头行。
+  可以在一次操作中删除多行。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "要删除行的表格文件路径"
+          },
+          "row_indices": {
+              "type": "array",
+              "items": {
+                  "type": "integer"
+              },
+              "description": "要删除的行索引列表（从 0 开始，不包括表头）"
+          }
+      },
+      "required": ["file_path", "row_indices"],
+      "additionalProperties": false
+  }
+

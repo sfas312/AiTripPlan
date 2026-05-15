@@ -1,0 +1,10 @@
+server:
+  port: 8085
+
+# A2A协议服务端
+agentscope:
+  a2a:
+    server:
+      enabled: true
+    nacos:
+      server-addr: localhost:8848

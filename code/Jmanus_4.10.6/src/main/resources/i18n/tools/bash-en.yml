@@ -1,0 +1,32 @@
+description: |
+  Execute bash commands in terminal with interactive support (current OS: %s).
+  * Action-based interface: Supports actions: 'command' (execute new command), 'send_input' (send input to interactive process), 'terminate' (stop current process).
+  * Working directory: All commands execute from the root-plan-folder. Use relative paths from the root-plan-folder for all operations. For example, to run 'folder1/abc.sh', use 'folder1/abc.sh' or 'cd folder1 && ./abc.sh'. DO NOT use 'cd folder1' followed by './abc.sh' in separate commands, as each command starts from the root-plan-folder.
+  * Path restrictions: All file and directory paths in commands are restricted to the root-plan-folder. Absolute paths outside root-plan-folder are not allowed. Paths with '..' that would escape root-plan-folder are blocked. Use relative paths from root-plan-folder for all file operations.
+  * Pager disabled: All pagers (more, less, git pager, etc.) are automatically disabled via environment variables (PAGER=cat, GIT_PAGER=cat). Commands will output all content directly without pagination. DO NOT use commands like 'more', 'less', or any pager-related commands as they will not work properly in this environment. For git commands, explicitly use '--no-pager' flag, e.g., 'git --no-pager log', 'git --no-pager diff'.
+  * Long-running commands: For commands that may run indefinitely, they should be run in background with output redirected to file, e.g.: command = `python3 app.py > server.log 2>&1 &`.
+  * Process management: Use 'terminate' to stop a running process. Process state is automatically tracked and available in tool state.
+  * Timeout handling: If command execution result shows "Command timed out. Sending SIGINT to the process", assistant should try to re-run the command in background.
+  * Large outputs: If command output is very long, it will be automatically saved to a file and a summary will be returned.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "action": {
+              "type": "string",
+              "description": "The action to perform. Supported actions: 'command' (execute a new shell command), 'send_input' (send input to current interactive process), 'terminate' (terminate current process). If not specified, defaults to 'command' for backward compatibility.",
+              "enum": ["command", "send_input", "terminate"]
+          },
+          "command": {
+              "type": "string",
+              "description": "The bash command to execute. Required for 'command' action. Note: Do not use pagers for any operations."
+          },
+          "input": {
+              "type": "string",
+              "description": "Input to send to current interactive process. Required for 'send_input' action. Examples: '\\n' or 'Enter' for Enter key."
+          }
+      },
+      "required": []
+  }
+

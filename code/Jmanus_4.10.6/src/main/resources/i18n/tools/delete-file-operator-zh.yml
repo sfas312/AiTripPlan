@@ -1,0 +1,27 @@
+description: |
+  从本地文件系统删除现有文件。此操作符提供对可在同一执行上下文中的所有子计划中访问的文件的访问。
+
+  关键词：全局文件、根目录、根文件夹、根计划目录、全局文件写入操作、根文件访问、跨计划文件、删除文件。
+
+  操作：
+  - 删除现有文件
+    - file_path（必需）：相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）
+    - 如果文件不存在，返回错误
+
+  功能特性：
+  - 在此处删除的文件可在执行上下文中的所有子计划中访问
+  - 删除前验证文件是否存在
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

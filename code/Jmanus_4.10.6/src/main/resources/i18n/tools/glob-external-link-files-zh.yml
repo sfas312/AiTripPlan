@@ -1,0 +1,32 @@
+description: |
+  在外部链接目录（linked_external 文件夹）中查找匹配 glob 模式的文件。此工具在外部文件夹中搜索匹配指定 glob 模式的文件，
+  结果按修改时间排序（最近修改的在前）。
+  
+  **前置条件：**
+  - 使用此工具前，必须在系统设置中配置外部文件夹
+  - 在系统设置中设置 'lynxe.general.externalLinkedFolder' 指向您的外部文件夹
+  - 如果已配置，计划启动时将自动创建外部文件夹链接
+  - 如果未配置 external_link，操作将失败并显示清晰的错误消息，提示缺少配置
+  
+  使用 glob 模式的快速基于模式的文件发现。
+  支持标准 glob 通配符（*、**、? 等）。
+  默认递归搜索（模式自动添加 **/ 前缀）。
+  不以 "**/" 开头的模式会自动添加 "**/" 前缀以启用递归搜索。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "glob_pattern": {
+              "type": "string",
+              "description": "用于匹配文件的 glob 模式（例如 '*.js'、'**/*.tsx'）。不以 '**/' 开头的模式会自动添加 '**/' 前缀以启用递归搜索"
+          },
+          "target_directory": {
+              "type": "string",
+              "description": "要在 external_link 目录中搜索的相对目录路径（可选，默认为 external_link 根目录，例如 'subdir' 或空字符串表示根目录）"
+          }
+      },
+      "required": ["glob_pattern"],
+      "additionalProperties": false
+  }
+

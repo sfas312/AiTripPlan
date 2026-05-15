@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.imooc</groupId>
+    <artifactId>Demo-WorkFlow-SpringAi_1_0</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--
+       ==============
+
+          为什么使用SpringAi Alibaba, 代替SpringAi
+
+          1. SpringAi Alibaba 是基于 SpringAi
+          2. SpringAi Alibaba在SpringAi的基础做了优化,
+            a. 更好集成国内模型：DeepSeek, Qwen3
+            b. 和阿里云百炼模型平台, 有深度的集成
+          3. SpringAi可以看作底层的Ai应用开发框架,
+            SpringAi Alibaba 倾向于Ai智能体(Ai Agent)的开发框架
+            a. 智能体的编排工作流
+            b. 适配多个智能体协作场景
+            c. 和阿里云的智能体应用平台有深度集成
+            d. 提供了RAG知识库的解决方案
+            e. 提供了分布式的MCP的方案
+
+       ==============
+-->
+
+        <!--    最低版本必须是 > 1.0.0-m6 ,  因为从1.0.0-m6开始才集成MCP   -->
+
+        <!--  SpringAi Alibaba 的版本号      -->
+        <spring-ai-alibaba.version>1.0.0.2</spring-ai-alibaba.version>
+        <!--  SpringBoot 的版本号      -->
+        <springboot.version>3.4.5</springboot.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--   SpringAi Alibaba 的版本管理        -->
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${springboot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+
+    </dependencyManagement>
+
+
+    <dependencies>
+
+        <!--
+整合SpringBoot 的 2个坑：
+1. 必须要引入 spring-boot-starter-web
+2. spring-boot-starter-web 引入顺序必须在 spring-ai-alibaba-starter-dashscope之前
+-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+
+        <!--  SpringAi Alibaba 1.0.0.2版本整合SpringBoot      -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <!-- 阿里百炼大模型服务平台 -->
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+        </dependency>
+
+        <!-- Ai Agent 工作流 -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-graph-core</artifactId>
+        </dependency>
+
+<!-- Ai Agent 工作流需要添加gson的依赖      -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
+    </dependencies>
+
+
+</project>

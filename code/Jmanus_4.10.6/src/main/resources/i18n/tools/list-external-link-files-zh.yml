@@ -1,0 +1,27 @@
+description: |
+  列出外部链接目录（linked_external 文件夹）中的文件和目录。此工具提供对外部文件夹中目录列表的访问，可以在同一执行上下文中的所有子计划中访问。
+  
+  **前置条件：**
+  - 使用此工具前，必须在系统设置中配置外部文件夹
+  - 在系统设置中设置 'lynxe.general.externalLinkedFolder' 指向您的外部文件夹
+  - 如果已配置，计划启动时将自动创建外部文件夹链接
+  - 如果未配置 external_link，操作将失败并显示清晰的错误消息，提示缺少配置
+
+  列出 external_link 目录中指定路径中的文件和目录。
+  以人类可读的格式显示文件大小（B、KB、MB、GB）。
+  可以列出外部文件夹根级别或子目录中的目录。
+  文件和目录按字母顺序排序。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "path": {
+              "type": "string",
+              "description": "要在 external_link 目录中列出的相对目录路径（可选，默认为根目录，例如 'subdir' 或空字符串表示根目录）"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

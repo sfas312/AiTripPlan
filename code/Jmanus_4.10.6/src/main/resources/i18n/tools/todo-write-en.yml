@@ -1,0 +1,55 @@
+description: |
+  Creates and manages a structured task list for tracking progress on complex, multi-step tasks.
+  Use this tool when you need to break down a complex task into smaller, trackable steps.
+  Each todo item has an id, content, and status (pending, in_progress, or completed).
+  The todo list is stored per plan and persists across execution steps.
+  Update the status of todos as you complete them, and mark them as completed when finished.
+
+  Usage Guidelines:
+  - When working on complex, multi-step tasks (3+ steps), use the todo-write tool to create and manage a structured task list.
+  - Break down complex tasks into smaller, trackable todo items with unique IDs.
+  - Update todo statuses in real-time as you progress: mark items as "in_progress" when you start working on them, and "completed" when finished.
+  - Each todo_write call replaces the entire todo list, so include all todos (including completed ones) in each update.
+  - Use todos to track your progress and help maintain context across multiple execution steps.
+  - DO NOT mention todo management explicitly to the user unless they ask about it.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "todos": {
+              "type": "array",
+              "description": "List of todo items to write. Each call replaces the entire todo list.",
+              "items": {
+                  "type": "object",
+                  "properties": {
+                      "id": {
+                          "type": "string",
+                          "description": "Unique identifier for the todo item"
+                      },
+                      "content": {
+                          "type": "string",
+                          "description": "Content/description of the todo item"
+                      },
+                      "status": {
+                          "type": "string",
+                          "description": "Status of the todo item",
+                          "enum": ["pending", "in_progress", "completed"]
+                      }
+                  },
+                  "required": ["id", "content", "status"],
+                  "additionalProperties": false
+              }
+          },
+          "modified_by_user": {
+              "type": "boolean",
+              "description": "Whether the todos were modified by the user (optional)"
+          },
+          "modified_content": {
+              "type": "string",
+              "description": "Modified content description (optional, used when modified_by_user is true)"
+          }
+      },
+      "required": ["todos"],
+      "additionalProperties": false
+  }

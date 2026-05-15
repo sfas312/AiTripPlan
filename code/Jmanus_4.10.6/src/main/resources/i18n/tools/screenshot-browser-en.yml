@@ -1,0 +1,11 @@
+description: |
+  Capture a screenshot of the current page.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

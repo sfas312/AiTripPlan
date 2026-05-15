@@ -1,0 +1,16 @@
+description: |
+  使用指定 URL 打开新标签页。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "url": {
+              "type": "string",
+              "description": "在新标签页中打开的 URL"
+          }
+      },
+      "required": ["url"],
+      "additionalProperties": false
+  }
+

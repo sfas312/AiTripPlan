@@ -1,0 +1,18 @@
+description: |
+  Get table structure (header information). Supports Excel (.xlsx, .xls) and CSV (.csv) formats.
+  
+  Returns the list of headers excluding the ID column.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Path to the table file"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

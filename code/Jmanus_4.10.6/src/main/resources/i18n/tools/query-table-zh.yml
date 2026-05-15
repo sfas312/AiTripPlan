@@ -1,0 +1,27 @@
+description: |
+  在表格中搜索匹配关键词的行。支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式。
+  
+  返回在任何单元格中包含任何指定关键词的所有行。
+  表头行不包括在搜索结果中。
+  匹配的行返回时不包含 ID 列。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "表格文件路径"
+          },
+          "keywords": {
+              "type": "array",
+              "items": {
+                  "type": "string"
+              },
+              "description": "搜索关键词列表"
+          }
+      },
+      "required": ["file_path", "keywords"],
+      "additionalProperties": false
+  }
+

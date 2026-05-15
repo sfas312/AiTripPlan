@@ -1,0 +1,16 @@
+description: |
+  切换到特定标签页。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "tab_id": {
+              "type": "integer",
+              "description": "要切换到的标签页 ID"
+          }
+      },
+      "required": ["tab_id"],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,83 @@
+description: |
+  Grep - 基于 ripgrep (rg) 构建的强大搜索工具，用于精确的文本/正则表达式匹配。
+  
+  ## 核心功能：
+  - 完整的正则表达式语法支持（例如 "log.*Error"、"function\\s+\\w+"）
+  - 多词并行搜索：使用 |（OR 操作符）在一个查询中搜索多个词/模式（例如 "Repository|Service|Controller"）
+  - 文件过滤：glob 模式（例如 "*.js"、"*.{ts,tsx}"）或 type 参数（更高效）
+  - 多种输出模式："count"（匹配计数，默认）、"content"（显示行）
+  - 大小写不敏感搜索：使用 -i 参数（默认：false）
+  - 上下文显示：-A（之后）、-B（之前）、-C（周围）用于显示匹配行周围的行
+  - 多行模式：启用 multiline=true（. 匹配换行符，模式可以跨行）
+  - 结果限制：使用 head_limit 限制输出（默认：1000 个结果）
+  
+  ## 使用场景：
+  使用 Grep：精确文本搜索、正则表达式匹配、已知符号/变量名查找、快速字符串定位
+  不要使用 Grep：语义理解搜索（使用 SemanticSearch）、文件名搜索（使用 Glob）、读取已知文件（使用 Read）
+  
+  ## 支持的文件类型：
+  java, py, js, ts, rust, go, cpp, md, json, xml, yaml, sql, sh, css, html
+  
+  ## 输出格式示例：
+  - content 模式："223:    public void method() {"（匹配行用冒号）、"224-        // code"（上下文用横线）
+  - count 模式："/path/to/file.java: 5 matches"
+  
+  ## 模式注意事项：
+  - Ripgrep 语法（非 grep）：字面量花括号需要转义（使用 interface\\{\\} 来查找 interface{}）
+  - 模式默认在单行内匹配；使用 multiline=true 进行跨行模式匹配
+  - 结果限制在数千行以提高性能；使用 head_limit 控制
+  
+  关键词：grep、搜索、查找文本、正则表达式、ripgrep、rg、模式匹配、文本搜索、精确匹配
+
+parameters: |
+  {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "要在文件内容中搜索的正则表达式模式（必需）。支持完整的正则表达式语法：'log.*Error'、'function\\s+\\w+'。使用 |（OR 操作符）搜索多个模式：'Repository|Service|Controller' 可匹配这些词中的任意一个。仅匹配完整单词时，使用 '\\b(word1|word2)\\b'。字面量花括号需要转义：使用 'interface\\{\\}' 来查找 'interface{}'"
+      },
+      "path": {
+        "type": "string",
+        "description": "要搜索的文件或目录（rg pattern -- PATH）。如果未提供，默认为 Cursor 工作区根目录。可以是绝对路径或相对路径"
+      },
+      "glob": {
+        "type": "string",
+        "description": "用于过滤文件的 glob 模式（rg --glob）。示例：'*.js'（仅 .js 文件）、'*.{ts,tsx}'（多个扩展名）。对于标准文件类型，'type' 参数更高效"
+      },
+      "type": {
+        "type": "string",
+        "description": "要搜索的文件类型（rg --type）。对于标准类型比 glob 更高效。支持：js, py, rust, go, java, cpp, md, json, xml, yaml, sql, sh, css, html, ts"
+      },
+      "-i": {
+        "type": "boolean",
+        "description": "大小写不敏感搜索（rg -i）。设置为 true 以在匹配时忽略大小写。默认：false"
+      },
+      "output_mode": {
+        "type": "string",
+        "enum": ["content", "count"],
+        "description": "输出模式（默认：'count'）。'content'：显示匹配行（支持 -A/-B/-C、行号、head_limit）。'count'：显示每个文件的匹配计数（支持 head_limit）"
+      },
+      "-B": {
+        "type": "integer",
+        "description": "在每个匹配项之前显示的行数（rg -B）。仅在 output_mode='content' 时有效，否则忽略。示例：-B=3 显示匹配前 3 行"
+      },
+      "-A": {
+        "type": "integer",
+        "description": "在每个匹配项之后显示的行数（rg -A）。仅在 output_mode='content' 时有效，否则忽略。示例：-A=3 显示匹配后 3 行"
+      },
+      "-C": {
+        "type": "integer",
+        "description": "在每个匹配项前后显示的行数（rg -C）。同时设置 -A 和 -B 的简写。仅在 output_mode='content' 时有效，否则忽略。示例：-C=2 显示前后各 2 行"
+      },
+      "multiline": {
+        "type": "boolean",
+        "description": "启用多行模式，其中 . 匹配换行符且模式可以跨行（rg -U --multiline-dotall）。默认：false。用于需要跨行边界匹配的模式，如 'struct \\{[\\s\\S]*?field'"
+      },
+      "head_limit": {
+        "type": "integer",
+        "description": "将输出限制为前 N 行/条目，相当于 '| head -N'。适用于所有输出模式：content（限制输出行）、count（限制计数条目）。默认：1000。未指定时，显示 ripgrep 的所有结果"
+      }
+    },
+    "required": ["pattern"]
+  }

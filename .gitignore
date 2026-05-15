@@ -1,0 +1,8 @@
+code/**/node_modules/
+code/**/package-lock.json
+code/**/*.lock
+
+code/**/.idea/
+code/**/out/
+code/**/target/
+code/**/META-INF/

@@ -1,0 +1,16 @@
+description: |
+  Visit a specific URL in the browser. Use this tool to navigate to web pages.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "url": {
+              "type": "string",
+              "description": "URL to navigate to"
+          }
+      },
+      "required": ["url"],
+      "additionalProperties": false
+  }
+

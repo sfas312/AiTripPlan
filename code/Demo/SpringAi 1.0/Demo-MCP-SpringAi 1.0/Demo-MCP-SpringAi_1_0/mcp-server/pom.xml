@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>Demo-MCP</artifactId>
+        <groupId>com.imooc</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+<!-- MCP 服务端模块   -->
+    <artifactId>mcp-server</artifactId>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+<!--
+webflux 框架 和 webmvc 是 Spring 的核心通信框架
+SpringBoot 搭建HTTP服务器的时候，就已经自动配置了 webflux 框架 或者  webmvc
+
+webflux和webmvc 支持 SSE 协议
+
+webmvc框架基于阻塞模型去处理请求：
+1. 一个请求会单独用一个线程去处理这个请求
+2. 这个线程在处理这个请求期间，是不能做其他的事情
+
+webflux框架基于非阻塞模型去处理请求
+1. 用一个线程去处理多个请求
+2. 这个线程在处理这个请求期间，是能够做其他的事情
+
+webflux框架 在性能上 优于 webmvc框架
+
+-->
+
+
+
+<!--   基于SpringBoot 的Webflux 框架 实现MCP 服务端的 SSE 协议    -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webflux</artifactId>
+        </dependency>
+
+<!--
+     spring-ai-starter-mcp-server-webmvc
+     是同样能够实现MCP 服务端的 SSE 协议
+     -->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.ai</groupId>-->
+<!--            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>-->
+<!--        </dependency>-->
+
+    </dependencies>
+
+</project>

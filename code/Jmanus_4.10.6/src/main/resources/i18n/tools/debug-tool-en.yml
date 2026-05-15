@@ -1,0 +1,15 @@
+description: |
+  Output a debug message. This tool allows you to log messages or output information during execution for debugging purposes. When this tool exists, you must use this tool at the end of each step to print what you think the current step did, what the next step plans to do, and why.
+
+parameters: |
+  {
+    "type": "object",
+    "properties": {
+      "message": {
+        "type": "string",
+        "description": "The debug message to output and return, format example:\n# Next Step Plan\nvalue\n# What Has Been Done\nvalue\n# Why This Plan Was Made\nvalue\n# What Requirements This Plan Is Based On\nvalue"
+      }
+    },
+    "required": ["message"]
+  }
+

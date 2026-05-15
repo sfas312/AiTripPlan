@@ -1,0 +1,32 @@
+description: |
+  Find files matching a glob pattern in the external_link directory (linked_external folder). This tool searches for files matching the specified glob pattern in the external folder,
+  with results sorted by modification time (most recently modified first).
+  
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this tool
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+  
+  Fast pattern-based file discovery using glob patterns.
+  Supports standard glob wildcards (*, **, ?, etc.).
+  Recursive search by default (patterns auto-prefixed with **/).
+  Patterns NOT starting with "**/" are automatically prepended with "**/" to enable recursive searching.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "glob_pattern": {
+              "type": "string",
+              "description": "The glob pattern to match files against (e.g., '*.js', '**/*.tsx'). Patterns NOT starting with '**/' are automatically prepended with '**/' to enable recursive searching"
+          },
+          "target_directory": {
+              "type": "string",
+              "description": "Relative directory path to search within the external_link directory (optional, defaults to external_link root, e.g., 'subdir' or empty for root)"
+          }
+      },
+      "required": ["glob_pattern"],
+      "additionalProperties": false
+  }
+

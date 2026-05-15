@@ -1,0 +1,20 @@
+description: |
+  在元素中输入文本。使用此工具在输入框或文本区域中输入文本。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "index": {
+              "type": "integer",
+              "description": "要输入文本的元素索引。这对应于 ARIA 快照中每个交互元素显示的 idx 值（例如 idx=39）。"
+          },
+          "text": {
+              "type": "string",
+              "description": "要输入的文本"
+          }
+      },
+      "required": ["index", "text"],
+      "additionalProperties": false
+  }
+

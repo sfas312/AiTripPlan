@@ -1,0 +1,21 @@
+description: |
+  获取表结构、字段和索引的完整元数据。
+  在需要了解表结构以编写 SQL 查询、分析数据库设计或生成文档时使用此工具。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "text": {
+              "type": "string",
+              "description": "模糊搜索表描述，留空以获取所有表"
+          },
+          "datasourceName": {
+              "type": "string",
+              "description": "数据源名称，可选"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

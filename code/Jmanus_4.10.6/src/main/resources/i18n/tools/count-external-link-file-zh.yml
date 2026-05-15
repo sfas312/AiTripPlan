@@ -1,0 +1,35 @@
+description: |
+  统计外部链接目录（linked_external 文件夹）中给定文件的总行数和字符数。此工具提供基于文本文件的详细统计信息，包括行数、字符数（包含和不包含换行符）、
+  单词数和文件大小。
+  
+  **前置条件：**
+  - 使用此工具前，必须在系统设置中配置外部文件夹
+  - 在系统设置中设置 'lynxe.general.externalLinkedFolder' 指向您的外部文件夹
+  - 如果已配置，计划启动时将自动创建外部文件夹链接
+  - 如果未配置 external_link，操作将失败并显示清晰的错误消息，提示缺少配置
+
+  重要提示：文件从 external_link 目录（linked_external 文件夹）读取。
+  例如，要统计 external_link 中的文件，请使用 file_path "file.md" 或 "subdir/file.md"。
+  
+  支持的文件类型：所有基于文本的格式，包括 markdown、代码文件、HTML、JSON、YAML 等。
+  
+  该工具提供以下统计信息：
+  - 总行数：文件中的行数
+  - 总字符数（包含换行符）：文件大小（字节/字符）
+  - 总字符数（不包含换行符）：所有行长度的总和
+  - 总单词数：单词数量（按空白字符分割）
+  - 文件大小：文件大小（字节）
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "要在 external_link 目录中统计的文件路径（相对于外部文件夹的相对路径，例如 'file.md' 或 'subdir/file.md'）"
+          }
+      },
+      "required": ["file_path"],
+      "additionalProperties": false
+  }
+

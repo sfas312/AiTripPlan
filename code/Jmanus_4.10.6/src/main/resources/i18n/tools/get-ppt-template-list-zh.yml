@@ -1,0 +1,12 @@
+description: |
+  获取可用模板列表。返回 JSON 格式的模板信息。
+  模板位于 extensions/pptGenerator/template 目录中。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+  }
+

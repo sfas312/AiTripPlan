@@ -1,0 +1,107 @@
+description: |
+  Create new PPT files or create based on template. Supports .pptx and .ppt file formats.
+  
+  When creating PPT, you can set title, subtitle, and multiple slides with title, content, and image path.
+  For template-based creation, first use get-ppt-template-list to get available templates, then use get-ppt-template to get and modify template content (only modify content of Text elements), and finally use this tool with path, template_content, and file_name parameters.
+  Generated PPT files will be automatically saved in extensions/pptGenerator/ directory.
+  The file_name parameter is mandatory whether using template or not.
+  Note: path must be a preset template path and exist in the content returned by get-ppt-template-list. template_content must strictly follow JSON format.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "title": {
+              "type": "string",
+              "description": "PPT title",
+              "minLength": 1
+          },
+          "subtitle": {
+              "type": "string",
+              "description": "PPT subtitle (optional)"
+          },
+          "slide_contents": {
+              "type": "array",
+              "description": "Slide content list (optional, used when not using template)",
+              "items": {
+                  "type": "object",
+                  "properties": {
+                      "title": {
+                          "type": "string",
+                          "description": "Slide title",
+                          "minLength": 1
+                      },
+                      "content": {
+                          "type": "string",
+                          "description": "Slide content",
+                          "minLength": 1
+                      },
+                      "image_path": {
+                          "type": "string",
+                          "description": "Image path in slide (optional)"
+                      }
+                  },
+                  "required": ["title", "content"],
+                  "additionalProperties": false
+              }
+          },
+          "path": {
+              "type": "string",
+              "description": "Template file path (required when applying template). Must be a preset template path and exist in the content returned by get-ppt-template-list."
+          },
+          "template_content": {
+              "type": "string",
+              "description": "Modified template content (required when applying template). Must strictly follow JSON format."
+          },
+          "file_name": {
+              "type": "string",
+              "description": "Generated PPT file name (required)",
+              "minLength": 1
+          }
+      },
+      "required": ["title", "file_name"],
+      "allOf": [
+          {
+              "if": {
+                  "properties": {
+                      "path": {
+                          "not": {
+                              "type": "null"
+                          }
+                      }
+                  },
+                  "required": ["path"]
+              },
+              "then": {
+                  "required": ["template_content"],
+                  "properties": {
+                      "template_content": {
+                          "minLength": 1
+                      }
+                  }
+              }
+          },
+          {
+              "if": {
+                  "properties": {
+                      "template_content": {
+                          "not": {
+                              "type": "null"
+                          }
+                      }
+                  },
+                  "required": ["template_content"]
+              },
+              "then": {
+                  "required": ["path"],
+                  "properties": {
+                      "path": {
+                          "minLength": 1
+                      }
+                  }
+              }
+          }
+      ],
+      "additionalProperties": false
+  }
+

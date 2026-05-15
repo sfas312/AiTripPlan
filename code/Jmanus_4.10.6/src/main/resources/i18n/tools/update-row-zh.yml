@@ -1,0 +1,27 @@
+description: |
+  根据 ID 更新表格中的现有行。支持 Excel (.xlsx, .xls) 和 CSV (.csv) 格式。
+  
+  行数据必须以表格中存在的有效 ID 开头。
+  数据列数必须与表头列数匹配（不包括 ID 列）。
+  如果 ID 不存在，操作将失败。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "表格文件路径"
+          },
+          "row_data": {
+              "type": "array",
+              "items": {
+                  "type": "string"
+              },
+              "description": "要更新的行数据（必须以表格中存在的有效 ID 开头，并与表头数量匹配）"
+          }
+      },
+      "required": ["file_path", "row_data"],
+      "additionalProperties": false
+  }
+

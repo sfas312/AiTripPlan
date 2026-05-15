@@ -1,0 +1,1237 @@
+/*
+ * Copyright 2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.cloud.ai.lynxe.mcp.service;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import com.alibaba.cloud.ai.lynxe.mcp.config.McpProperties;
+import com.alibaba.cloud.ai.lynxe.mcp.model.po.McpConfigEntity;
+import com.alibaba.cloud.ai.lynxe.mcp.model.po.McpConfigStatus;
+import com.alibaba.cloud.ai.lynxe.mcp.model.vo.ConnectionStatusInfo;
+import com.alibaba.cloud.ai.lynxe.mcp.model.vo.McpConnectionStatus;
+import com.alibaba.cloud.ai.lynxe.mcp.model.vo.McpServiceEntity;
+import com.alibaba.cloud.ai.lynxe.mcp.repository.McpConfigRepository;
+
+import io.modelcontextprotocol.client.McpAsyncClient;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
+/**
+ * MCP Cache Manager with fail-fast design
+ *
+ * Key features: - Single connection per server - Fail-fast: main thread returns
+ * immediately, background tasks handle connection operations - Automatic health check and
+ * connection rebuild - No blocking operations on main/EventLoop threads
+ */
+@Component
+public class McpCacheManager {
+
+	private static final Logger logger = LoggerFactory.getLogger(McpCacheManager.class);
+
+	/**
+	 * Connection state enum
+	 */
+	private enum ConnectionState {
+
+		CONNECTED, CLOSING, CLOSED, RECONNECTING
+
+	}
+
+	/**
+	 * Connection wrapper with state management
+	 */
+	private static class ConnectionWrapper {
+
+		private final AtomicReference<ConnectionState> state;
+
+		private volatile McpServiceEntity serviceEntity;
+
+		private final ReentrantLock rebuildLock;
+
+		private final AtomicInteger pendingRequests;
+
+		public ConnectionWrapper(McpServiceEntity serviceEntity) {
+			this.serviceEntity = serviceEntity;
+			this.state = new AtomicReference<>(
+					serviceEntity != null ? ConnectionState.CONNECTED : ConnectionState.RECONNECTING);
+			this.rebuildLock = new ReentrantLock();
+			this.pendingRequests = new AtomicInteger(0);
+		}
+
+		public ConnectionState getState() {
+			return state.get();
+		}
+
+		public boolean setState(ConnectionState expected, ConnectionState update) {
+			return state.compareAndSet(expected, update);
+		}
+
+		public McpServiceEntity getServiceEntity() {
+			return serviceEntity;
+		}
+
+		public void setServiceEntity(McpServiceEntity serviceEntity) {
+			this.serviceEntity = serviceEntity;
+		}
+
+		public ReentrantLock getRebuildLock() {
+			return rebuildLock;
+		}
+
+		public AtomicInteger getPendingRequests() {
+			return pendingRequests;
+		}
+
+	}
+
+	private final McpConnectionFactory connectionFactory;
+
+	private final McpConfigRepository mcpConfigRepository;
+
+	private final McpProperties mcpProperties;
+
+	/**
+	 * Single connection per server (serverName -> ConnectionWrapper)
+	 */
+	private final Map<String, ConnectionWrapper> connections = new ConcurrentHashMap<>();
+
+	/**
+	 * Configuration cache (serverName -> McpConfigEntity)
+	 */
+	private final Map<String, McpConfigEntity> configCache = new ConcurrentHashMap<>();
+
+	/**
+	 * Thread pool for async connection rebuild operations
+	 */
+	private final ExecutorService rebuildExecutor = Executors.newCachedThreadPool(r -> {
+		Thread t = new Thread(r, "MCP-Rebuild");
+		t.setDaemon(true);
+		return t;
+	});
+
+	/**
+	 * Thread pool for blocking connection operations to avoid blocking Netty EventLoop
+	 * threads
+	 */
+	private final ExecutorService connectionExecutor = Executors.newCachedThreadPool(r -> {
+		Thread t = new Thread(r, "MCP-Connection");
+		t.setDaemon(true);
+		return t;
+	});
+
+	/**
+	 * Scheduled executor for background connection health check and rebuild
+	 */
+	private final ScheduledExecutorService healthCheckExecutor = Executors.newScheduledThreadPool(2, r -> {
+		Thread t = new Thread(r, "MCP-HealthCheck");
+		t.setDaemon(true);
+		return t;
+	});
+
+	/**
+	 * Track scheduled health check tasks for each server
+	 */
+	private final Map<String, ScheduledFuture<?>> healthCheckTasks = new ConcurrentHashMap<>();
+
+	/**
+	 * Track connection status for each server (serverName -> ConnectionStatusInfo)
+	 */
+	private final Map<String, ConnectionStatusInfo> connectionStatusMap = new ConcurrentHashMap<>();
+
+	/**
+	 * Track last error log time for each server to throttle error logging (serverName ->
+	 * lastErrorLogTime)
+	 */
+	private final Map<String, Long> lastErrorLogTimeMap = new ConcurrentHashMap<>();
+
+	/**
+	 * Track last rebuild attempt time for each server to throttle rebuild attempts
+	 * (serverName -> lastRebuildAttemptTime)
+	 */
+	private final Map<String, Long> lastRebuildAttemptTimeMap = new ConcurrentHashMap<>();
+
+	/**
+	 * Track consecutive failure count for each server (serverName ->
+	 * consecutiveFailureCount)
+	 */
+	private final Map<String, AtomicInteger> consecutiveFailureCountMap = new ConcurrentHashMap<>();
+
+	/**
+	 * Minimum interval between error logs for the same server (5 minutes)
+	 */
+	private static final long ERROR_LOG_THROTTLE_INTERVAL_MS = 5 * 60 * 1000L;
+
+	/**
+	 * Minimum interval between rebuild attempts for the same server (30 seconds)
+	 */
+	private static final long REBUILD_THROTTLE_INTERVAL_MS = 30 * 1000L;
+
+	/**
+	 * Maximum consecutive failures before applying extended cooldown (3 failures)
+	 */
+	private static final int MAX_CONSECUTIVE_FAILURES = 3;
+
+	/**
+	 * Extended cooldown period after multiple consecutive failures (5 minutes)
+	 */
+	private static final long EXTENDED_REBUILD_COOLDOWN_MS = 5 * 60 * 1000L;
+
+	/**
+	 * Maximum pending requests threshold for health check
+	 */
+	private static final int MAX_PENDING_REQUESTS_THRESHOLD = 100;
+
+	/**
+	 * Health check interval in seconds (default: 5 seconds)
+	 */
+	private static final long HEALTH_CHECK_INTERVAL_SECONDS = 5;
+
+	public McpCacheManager(McpConnectionFactory connectionFactory, McpConfigRepository mcpConfigRepository,
+			McpProperties mcpProperties) {
+		this.connectionFactory = connectionFactory;
+		this.mcpConfigRepository = mcpConfigRepository;
+		this.mcpProperties = mcpProperties;
+	}
+
+	/**
+	 * Initialize cache on startup
+	 */
+	@PostConstruct
+	public void initializeCache() {
+		logger.info("Initializing MCP cache manager with fail-fast design");
+		try {
+			// Load all enabled configurations
+			List<McpConfigEntity> configs = mcpConfigRepository.findByStatus(McpConfigStatus.ENABLE);
+			for (McpConfigEntity config : configs) {
+				configCache.put(config.getMcpServerName(), config);
+			}
+			logger.info("Loaded {} MCP server configurations", configs.size());
+		}
+		catch (Exception e) {
+			logger.error("Failed to initialize cache", e);
+		}
+	}
+
+	/**
+	 * Get connection for a server (fail-fast, non-blocking) Main thread returns
+	 * immediately, background task handles connection creation/rebuild
+	 * @param serverName Server name
+	 * @return Connection wrapper if connected, null otherwise (fail-fast)
+	 */
+	private ConnectionWrapper getConnection(String serverName) {
+		ConnectionWrapper wrapper = connections.get(serverName);
+		if (wrapper != null) {
+			ConnectionState state = wrapper.getState();
+			if (state == ConnectionState.CONNECTED) {
+				return wrapper;
+			}
+			// If connection is closed or closing, trigger background rebuild
+			// (non-blocking)
+			if (state == ConnectionState.CLOSED || state == ConnectionState.CLOSING) {
+				triggerBackgroundRebuild(serverName);
+				return null; // Fail-fast: return immediately
+			}
+			// If reconnecting, fail-fast: return null immediately
+			if (state == ConnectionState.RECONNECTING) {
+				return null;
+			}
+		}
+
+		// Connection doesn't exist, trigger background creation (non-blocking)
+		McpConfigEntity config = configCache.get(serverName);
+		if (config == null) {
+			logger.warn("MCP server configuration not found: {}", serverName);
+			return null;
+		}
+
+		// Fail-fast: trigger background creation and return immediately
+		triggerBackgroundCreation(serverName);
+		return null;
+	}
+
+	/**
+	 * Trigger background connection creation (non-blocking)
+	 * @param serverName Server name
+	 */
+	private void triggerBackgroundCreation(String serverName) {
+		// Check if already creating
+		ConnectionWrapper existing = connections.get(serverName);
+		if (existing != null && existing.getState() == ConnectionState.RECONNECTING) {
+			return; // Already being created
+		}
+
+		// Create placeholder wrapper with RECONNECTING state
+		ConnectionWrapper placeholder = new ConnectionWrapper(null);
+		placeholder.setState(ConnectionState.CONNECTED, ConnectionState.RECONNECTING);
+		connections.putIfAbsent(serverName, placeholder);
+
+		// Trigger background creation task
+		connectionExecutor.execute(() -> {
+			try {
+				McpConfigEntity config = configCache.get(serverName);
+				if (config == null) {
+					logger.warn("MCP server configuration not found for background creation: {}", serverName);
+					connections.remove(serverName);
+					return;
+				}
+
+				// Record creation attempt time
+				lastRebuildAttemptTimeMap.put(serverName, System.currentTimeMillis());
+
+				McpServiceEntity serviceEntity = connectionFactory.createConnection(config);
+				if (serviceEntity != null) {
+					ConnectionWrapper wrapper = connections.get(serverName);
+					if (wrapper != null) {
+						wrapper.setServiceEntity(serviceEntity);
+						wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CONNECTED);
+						logger.info("Background connection created successfully for server: {}", serverName);
+						// Reset failure count on success
+						consecutiveFailureCountMap.remove(serverName);
+						// Update connection status to CONNECTED
+						updateConnectionStatus(serverName, McpConnectionStatus.CONNECTED, null);
+						// Start health check for this connection
+						scheduleHealthCheck(serverName);
+					}
+				}
+				else {
+					// Increment failure count
+					consecutiveFailureCountMap.computeIfAbsent(serverName, k -> new AtomicInteger(0)).incrementAndGet();
+					// Throttle error logging
+					logConnectionError(serverName, "Failed to create connection in background", null);
+					ConnectionWrapper wrapper = connections.get(serverName);
+					if (wrapper != null) {
+						wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CLOSED);
+					}
+					// Update connection status to ERROR
+					updateConnectionStatus(serverName, McpConnectionStatus.ERROR,
+							"Failed to create connection: Connection factory returned null");
+				}
+			}
+			catch (Exception e) {
+				// Increment failure count
+				consecutiveFailureCountMap.computeIfAbsent(serverName, k -> new AtomicInteger(0)).incrementAndGet();
+				// Throttle error logging
+				logConnectionError(serverName, "Exception during background connection creation", e);
+				ConnectionWrapper wrapper = connections.get(serverName);
+				if (wrapper != null) {
+					wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CLOSED);
+				}
+				// Update connection status to ERROR with error message
+				String errorMessage = extractErrorMessage(e);
+				updateConnectionStatus(serverName, McpConnectionStatus.ERROR, errorMessage);
+			}
+		});
+	}
+
+	/**
+	 * Trigger background connection rebuild (non-blocking)
+	 * @param serverName Server name
+	 */
+	private void triggerBackgroundRebuild(String serverName) {
+		ConnectionWrapper wrapper = connections.get(serverName);
+		if (wrapper == null) {
+			triggerBackgroundCreation(serverName);
+			return;
+		}
+
+		// Only trigger if not already rebuilding
+		if (wrapper.getState() == ConnectionState.RECONNECTING) {
+			return; // Already rebuilding
+		}
+
+		// Check if rebuild should be throttled
+		if (shouldThrottleRebuild(serverName)) {
+			logger.debug("Rebuild throttled for server: {} (too many recent failures)", serverName);
+			return;
+		}
+
+		// Mark as reconnecting and trigger background rebuild
+		wrapper.setState(ConnectionState.CLOSED, ConnectionState.RECONNECTING);
+		rebuildExecutor.execute(() -> rebuildConnection(serverName));
+	}
+
+	/**
+	 * Check if rebuild should be throttled based on recent failures
+	 * @param serverName Server name
+	 * @return true if rebuild should be throttled, false otherwise
+	 */
+	private boolean shouldThrottleRebuild(String serverName) {
+		long currentTime = System.currentTimeMillis();
+		Long lastRebuildTime = lastRebuildAttemptTimeMap.get(serverName);
+
+		if (lastRebuildTime == null) {
+			return false; // No previous rebuild attempts
+		}
+
+		long timeSinceLastRebuild = currentTime - lastRebuildTime;
+		AtomicInteger failureCount = consecutiveFailureCountMap.computeIfAbsent(serverName, k -> new AtomicInteger(0));
+
+		// If we have many consecutive failures, use extended cooldown
+		if (failureCount.get() >= MAX_CONSECUTIVE_FAILURES) {
+			if (timeSinceLastRebuild < EXTENDED_REBUILD_COOLDOWN_MS) {
+				return true; // Still in extended cooldown period
+			}
+		}
+		else {
+			// Normal throttle interval
+			if (timeSinceLastRebuild < REBUILD_THROTTLE_INTERVAL_MS) {
+				return true; // Still in normal throttle period
+			}
+		}
+
+		return false; // Can proceed with rebuild
+	}
+
+	/**
+	 * Get connection with automatic retry on connection errors (fail-fast) This method
+	 * quickly checks connection status and returns, relying on background tasks for
+	 * rebuild
+	 * @param serverName Server name
+	 * @return Connection wrapper if connected, null otherwise (fail-fast)
+	 */
+	public ConnectionWrapper getConnectionWithRetry(String serverName) {
+		// Fail-fast: check once and return immediately
+		ConnectionWrapper wrapper = getConnection(serverName);
+		if (wrapper != null && wrapper.getState() == ConnectionState.CONNECTED) {
+			return wrapper;
+		}
+
+		// Connection not available, trigger background rebuild if needed
+		if (wrapper == null) {
+			triggerBackgroundCreation(serverName);
+		}
+		else if (wrapper.getState() != ConnectionState.CONNECTED) {
+			triggerBackgroundRebuild(serverName);
+		}
+
+		return null; // Fail-fast: return immediately
+	}
+
+	/**
+	 * Rebuild connection for a server (executed in background thread)
+	 * @param serverName Server name
+	 */
+	private void rebuildConnection(String serverName) {
+		ConnectionWrapper wrapper = connections.get(serverName);
+		if (wrapper == null) {
+			// No existing connection, just create new one
+			triggerBackgroundCreation(serverName);
+			return;
+		}
+
+		ReentrantLock lock = wrapper.getRebuildLock();
+		if (!lock.tryLock()) {
+			// Another thread is already rebuilding
+			logger.debug("Connection rebuild already in progress for server: {}", serverName);
+			return;
+		}
+
+		try {
+			// Double-check state after acquiring lock
+			if (wrapper.getState() == ConnectionState.CONNECTED) {
+				logger.debug("Connection already rebuilt by another thread for server: {}", serverName);
+				return;
+			}
+
+			// Mark as reconnecting
+			wrapper.setState(ConnectionState.CLOSED, ConnectionState.RECONNECTING);
+
+			logger.info("Rebuilding connection for server: {}", serverName);
+
+			// Close old connection gracefully
+			McpServiceEntity oldEntity = wrapper.getServiceEntity();
+			if (oldEntity != null && oldEntity.getMcpAsyncClient() != null) {
+				closeClientSafely(oldEntity, serverName);
+			}
+
+			// Wait a bit before rebuilding (configurable delay, but in background thread)
+			long rebuildDelay = mcpProperties.getConnectionRebuildDelayMillis();
+			if (rebuildDelay > 0) {
+				try {
+					Thread.sleep(rebuildDelay);
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CLOSED);
+					return;
+				}
+			}
+
+			// Create new connection
+			McpConfigEntity config = configCache.get(serverName);
+			if (config == null) {
+				logger.warn(
+						"MCP server configuration not found for rebuild: {}. This may indicate the server was deleted. Cleaning up connection.",
+						serverName);
+				// Configuration was deleted, clean up connection and health check
+				cleanupDeletedServer(serverName);
+				wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CLOSED);
+				return;
+			}
+
+			// Record rebuild attempt time
+			lastRebuildAttemptTimeMap.put(serverName, System.currentTimeMillis());
+
+			try {
+				McpServiceEntity newEntity = connectionFactory.createConnection(config);
+
+				if (newEntity != null) {
+					wrapper.setServiceEntity(newEntity);
+					wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CONNECTED);
+					logger.info("Successfully rebuilt connection for server: {}", serverName);
+					// Reset failure count on success
+					consecutiveFailureCountMap.remove(serverName);
+					// Update connection status to CONNECTED
+					updateConnectionStatus(serverName, McpConnectionStatus.CONNECTED, null);
+					// Start health check for this connection
+					scheduleHealthCheck(serverName);
+				}
+				else {
+					// Increment failure count
+					consecutiveFailureCountMap.computeIfAbsent(serverName, k -> new AtomicInteger(0)).incrementAndGet();
+					// Throttle error logging to avoid log spam
+					logConnectionError(serverName, "Failed to create new connection", null);
+					wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CLOSED);
+					// Update connection status to ERROR
+					updateConnectionStatus(serverName, McpConnectionStatus.ERROR,
+							"Failed to rebuild connection: Connection factory returned null");
+				}
+			}
+			catch (Exception e) {
+				// Increment failure count
+				consecutiveFailureCountMap.computeIfAbsent(serverName, k -> new AtomicInteger(0)).incrementAndGet();
+				// Throttle error logging to avoid log spam
+				logConnectionError(serverName, "Failed to rebuild connection", e);
+				wrapper.setState(ConnectionState.RECONNECTING, ConnectionState.CLOSED);
+				// Update connection status to ERROR with error message
+				String errorMessage = extractErrorMessage(e);
+				updateConnectionStatus(serverName, McpConnectionStatus.ERROR, errorMessage);
+			}
+		}
+		finally {
+			lock.unlock();
+		}
+	}
+
+	/**
+	 * Check if exception is connection-related and should trigger rebuild
+	 * @param e Exception to check
+	 * @return true if connection-related
+	 */
+	private boolean isConnectionError(Exception e) {
+		if (e == null) {
+			return false;
+		}
+
+		// Check for "Failed to enqueue message" error (STDIO transport error)
+		// This indicates the MCP server process may have died or streams are closed
+		String message = e.getMessage();
+		if (message != null && message.contains("Failed to enqueue message")) {
+			return true;
+		}
+
+		// Check exception and all causes in the chain for "Failed to enqueue message"
+		Throwable cause = e;
+		int depth = 0;
+		while (cause != null && depth < 10) { // Limit depth to prevent infinite loops
+			if (cause instanceof RuntimeException || cause instanceof Exception) {
+				String causeMessage = cause.getMessage();
+				if (causeMessage != null && causeMessage.contains("Failed to enqueue message")) {
+					return true;
+				}
+			}
+			cause = cause.getCause();
+			depth++;
+		}
+
+		// Check for timeout exceptions
+		if (e instanceof TimeoutException || e instanceof java.util.concurrent.TimeoutException) {
+			return true;
+		}
+
+		// Check for ReadTimeoutException (SSE specific)
+		String className = e.getClass().getName();
+		if (className.contains("ReadTimeoutException") || className.contains("ReadTimeout")) {
+			return true;
+		}
+
+		// Check for WebClientResponseException with ReadTimeoutException cause
+		if (className.contains("WebClientResponseException") || className.contains("WebClientException")) {
+			Throwable cause2 = e.getCause();
+			if (cause2 != null) {
+				String causeClassName = cause2.getClass().getName();
+				if (causeClassName.contains("ReadTimeoutException") || causeClassName.contains("ReadTimeout")) {
+					return true;
+				}
+			}
+		}
+
+		// Check for IOException (connection closed, network errors)
+		if (e instanceof IOException) {
+			if (message != null) {
+				String lowerMessage = message.toLowerCase();
+				return lowerMessage.contains("connection") || lowerMessage.contains("closed")
+						|| lowerMessage.contains("reset") || lowerMessage.contains("broken")
+						|| lowerMessage.contains("read timeout");
+			}
+			return true;
+		}
+
+		// Check exception class name
+		if (className.contains("Timeout") || className.contains("Connection") || className.contains("Closed")
+				|| className.contains("ReadTimeout")) {
+			return true;
+		}
+
+		// Check message for connection-related keywords
+		if (message != null) {
+			String lowerMessage = message.toLowerCase();
+			return lowerMessage.contains("timeout") || lowerMessage.contains("timed out")
+					|| lowerMessage.contains("connection") || lowerMessage.contains("closed")
+					|| lowerMessage.contains("read timeout") || lowerMessage.contains("transport")
+					|| lowerMessage.contains("process") && lowerMessage.contains("died");
+		}
+
+		return false;
+	}
+
+	/**
+	 * Handle connection error by marking connection as closed and triggering background
+	 * rebuild (fail-fast) This method should be called when a connection error is
+	 * detected during request execution
+	 * @param serverName Server name
+	 */
+	public void handleConnectionError(String serverName) {
+		ConnectionWrapper wrapper = connections.get(serverName);
+		if (wrapper != null) {
+			ConnectionState currentState = wrapper.getState();
+			// Only mark as closed if currently connected (avoid race conditions)
+			if (currentState == ConnectionState.CONNECTED) {
+				logger.warn(
+						"Connection error detected for server: {}, marking as closed and triggering background rebuild",
+						serverName);
+				// Fail-fast: mark as closed and trigger background rebuild, don't wait
+				wrapper.setState(ConnectionState.CONNECTED, ConnectionState.CLOSED);
+				// Mark as disconnected
+				markConnectionDisconnected(serverName);
+				triggerBackgroundRebuild(serverName);
+			}
+		}
+		else {
+			// Connection doesn't exist, trigger background creation (fail-fast)
+			triggerBackgroundCreation(serverName);
+		}
+	}
+
+	/**
+	 * Schedule periodic health check for a connection
+	 * @param serverName Server name
+	 */
+	private void scheduleHealthCheck(String serverName) {
+		// Cancel existing health check task if any
+		ScheduledFuture<?> existingTask = healthCheckTasks.get(serverName);
+		if (existingTask != null && !existingTask.isCancelled()) {
+			existingTask.cancel(false);
+		}
+
+		// Schedule new health check task
+		ScheduledFuture<?> task = healthCheckExecutor.scheduleWithFixedDelay(() -> {
+			try {
+				performHealthCheck(serverName);
+			}
+			catch (Exception e) {
+				logger.error("Error during health check for server: {}", serverName, e);
+			}
+		}, HEALTH_CHECK_INTERVAL_SECONDS, HEALTH_CHECK_INTERVAL_SECONDS, TimeUnit.SECONDS);
+
+		healthCheckTasks.put(serverName, task);
+		logger.debug("Scheduled health check for server: {} (interval: {}s)", serverName,
+				HEALTH_CHECK_INTERVAL_SECONDS);
+	}
+
+	/**
+	 * Perform health check on a connection and rebuild if needed
+	 * @param serverName Server name
+	 */
+	private void performHealthCheck(String serverName) {
+		ConnectionWrapper wrapper = connections.get(serverName);
+		if (wrapper == null) {
+			// Connection doesn't exist, cancel health check
+			cancelHealthCheck(serverName);
+			return;
+		}
+
+		ConnectionState state = wrapper.getState();
+		if (state == ConnectionState.CONNECTED) {
+			// Connection is connected, check if it's actually healthy
+			McpServiceEntity entity = wrapper.getServiceEntity();
+			if (entity == null || entity.getMcpAsyncClient() == null) {
+				logger.warn("Health check: Connection for server {} has null entity, marking as closed", serverName);
+				wrapper.setState(ConnectionState.CONNECTED, ConnectionState.CLOSED);
+				triggerBackgroundRebuild(serverName);
+				return;
+			}
+
+			// Check pending requests threshold
+			int pendingRequests = wrapper.getPendingRequests().get();
+			if (pendingRequests > MAX_PENDING_REQUESTS_THRESHOLD) {
+				logger.warn("Health check: Too many pending requests ({}) for server {}, marking as closed",
+						pendingRequests, serverName);
+				wrapper.setState(ConnectionState.CONNECTED, ConnectionState.CLOSED);
+				triggerBackgroundRebuild(serverName);
+				return;
+			}
+
+			// Connection appears healthy
+			logger.debug("Health check: Connection for server {} is healthy (pending requests: {})", serverName,
+					pendingRequests);
+		}
+		else if (state == ConnectionState.CLOSED || state == ConnectionState.CLOSING) {
+			// Connection is closed, trigger rebuild
+			logger.info("Health check: Connection for server {} is closed, triggering rebuild", serverName);
+			triggerBackgroundRebuild(serverName);
+		}
+		// RECONNECTING state: do nothing, wait for rebuild to complete
+	}
+
+	/**
+	 * Cancel health check for a server
+	 * @param serverName Server name
+	 */
+	private void cancelHealthCheck(String serverName) {
+		ScheduledFuture<?> task = healthCheckTasks.remove(serverName);
+		if (task != null && !task.isCancelled()) {
+			task.cancel(false);
+			logger.debug("Cancelled health check for server: {}", serverName);
+		}
+	}
+
+	/**
+	 * Clean up connection and related resources for a deleted server
+	 * @param serverName Server name that was deleted
+	 */
+	private void cleanupDeletedServer(String serverName) {
+		logger.info("Cleaning up resources for deleted server: {}", serverName);
+
+		// Cancel health check
+		cancelHealthCheck(serverName);
+
+		// Close connection if exists
+		ConnectionWrapper wrapper = connections.get(serverName);
+		if (wrapper != null && wrapper.getServiceEntity() != null) {
+			closeClientSafely(wrapper.getServiceEntity(), serverName);
+		}
+
+		// Remove from connections map (will be done by caller)
+		// Remove from tracking maps
+		lastRebuildAttemptTimeMap.remove(serverName);
+		consecutiveFailureCountMap.remove(serverName);
+		lastErrorLogTimeMap.remove(serverName);
+		connectionStatusMap.remove(serverName);
+
+		logger.debug("Cleaned up all resources for deleted server: {}", serverName);
+	}
+
+	/**
+	 * Execute a function with automatic retry on connection errors This is a helper
+	 * method that can be used to wrap tool execution with retry logic
+	 * @param serverName Server name
+	 * @param function Function to execute
+	 * @return Result of function execution
+	 * @param <T> Return type
+	 * @throws Exception If execution fails after all retries
+	 */
+	public <T> T executeWithRetry(String serverName, java.util.function.Function<McpServiceEntity, T> function)
+			throws Exception {
+		int retryCount = 0;
+		int maxRetries = mcpProperties.getRequestRetryCount();
+		Exception lastException = null;
+
+		while (retryCount <= maxRetries) {
+			ConnectionWrapper wrapper = getConnectionWithRetry(serverName);
+			if (wrapper == null || wrapper.getState() != ConnectionState.CONNECTED) {
+				throw new IOException("Failed to get valid connection for server: " + serverName);
+			}
+
+			McpServiceEntity entity = wrapper.getServiceEntity();
+			if (entity == null) {
+				throw new IOException("Service entity is null for server: " + serverName);
+			}
+
+			try {
+				wrapper.getPendingRequests().incrementAndGet();
+				T result = function.apply(entity);
+				wrapper.getPendingRequests().decrementAndGet();
+				return result;
+			}
+			catch (Exception e) {
+				wrapper.getPendingRequests().decrementAndGet();
+				lastException = e;
+
+				if (isConnectionError(e)) {
+					// Enhanced logging with connection state for debugging
+					ConnectionState currentState = wrapper.getState();
+					int pendingReqs = wrapper.getPendingRequests().get();
+
+					// Special handling for "Failed to enqueue message" error
+					boolean isEnqueueError = e.getMessage() != null
+							&& e.getMessage().contains("Failed to enqueue message");
+
+					if (isEnqueueError) {
+						logger.error(
+								"Transport enqueue failed for server: {} (state: {}, pending: {}, attempt: {}/{}) - "
+										+ "MCP server process may have died or streams are closed. "
+										+ "Triggering immediate connection rebuild.",
+								serverName, currentState, pendingReqs, retryCount + 1, maxRetries + 1, e);
+					}
+					else {
+						logger.warn(
+								"Connection error during execution for server: {} (state: {}, pending: {}, attempt: {}/{}): {}",
+								serverName, currentState, pendingReqs, retryCount + 1, maxRetries + 1, e.getMessage());
+					}
+
+					// Mark connection as closed and trigger background rebuild
+					handleConnectionError(serverName);
+
+					if (retryCount < maxRetries) {
+						// For enqueue errors, wait a bit longer to allow process restart
+						// Use exponential backoff: 1s, 2s, 3s...
+						if (isEnqueueError) {
+							long waitTime = 1000L * (retryCount + 1);
+							try {
+								logger.debug("Waiting {}ms before retry for enqueue error (server: {})", waitTime,
+										serverName);
+								Thread.sleep(waitTime);
+							}
+							catch (InterruptedException ie) {
+								Thread.currentThread().interrupt();
+								logger.warn("Retry wait interrupted for server: {}", serverName);
+								throw new IOException("Retry interrupted for server: " + serverName, ie);
+							}
+						}
+						// For other connection errors, retry immediately (fail-fast)
+						// Background task will handle rebuild
+						retryCount++;
+						continue;
+					}
+				}
+
+				// Not a connection error or retries exhausted
+				throw e;
+			}
+		}
+
+		// All retries exhausted
+		throw new IOException("Failed to execute after " + (maxRetries + 1) + " attempts for server: " + serverName,
+				lastException);
+	}
+
+	/**
+	 * Get MCP services (maintains interface compatibility)
+	 * @param planId Plan ID (not used, maintained for compatibility)
+	 * @return MCP service entity mapping
+	 */
+	public Map<String, McpServiceEntity> getOrLoadServices(String planId) {
+		Map<String, McpServiceEntity> result = new ConcurrentHashMap<>();
+		for (String serverName : configCache.keySet()) {
+			ConnectionWrapper wrapper = getConnectionWithRetry(serverName);
+			if (wrapper != null && wrapper.getState() == ConnectionState.CONNECTED) {
+				McpServiceEntity entity = wrapper.getServiceEntity();
+				if (entity != null) {
+					result.put(serverName, entity);
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Get MCP service entity list (maintains interface compatibility)
+	 * @param planId Plan ID
+	 * @return MCP service entity list
+	 */
+	public List<McpServiceEntity> getServiceEntities(String planId) {
+		return new ArrayList<>(getOrLoadServices(planId).values());
+	}
+
+	/**
+	 * Invalidate cache for a plan (triggers connection rebuild)
+	 * @param planId Plan ID (not used, maintained for compatibility)
+	 */
+	public void invalidateCache(String planId) {
+		logger.info("Cache invalidation requested, triggering connection rebuild for all servers");
+		for (String serverName : connections.keySet()) {
+			ConnectionWrapper wrapper = connections.get(serverName);
+			if (wrapper != null) {
+				wrapper.setState(ConnectionState.CONNECTED, ConnectionState.CLOSED);
+				triggerBackgroundRebuild(serverName);
+			}
+		}
+	}
+
+	/**
+	 * Invalidate all cache (triggers connection rebuild for all servers)
+	 */
+	public void invalidateAllCache() {
+		logger.info("All cache invalidation requested, triggering connection rebuild for all servers");
+		// Reload configurations
+		try {
+			List<McpConfigEntity> configs = mcpConfigRepository.findByStatus(McpConfigStatus.ENABLE);
+			configCache.clear();
+			for (McpConfigEntity config : configs) {
+				configCache.put(config.getMcpServerName(), config);
+			}
+		}
+		catch (Exception e) {
+			logger.error("Failed to reload configurations", e);
+		}
+
+		// Clean up connections for servers that no longer exist in config
+		List<String> serversToRemove = new ArrayList<>();
+		for (String serverName : connections.keySet()) {
+			if (!configCache.containsKey(serverName)) {
+				logger.info("Server '{}' no longer exists in configuration, cleaning up connection", serverName);
+				cleanupDeletedServer(serverName);
+				serversToRemove.add(serverName);
+			}
+		}
+		// Remove cleaned up servers from connections map
+		for (String serverName : serversToRemove) {
+			connections.remove(serverName);
+		}
+
+		// Rebuild connections for servers that still exist in config
+		for (String serverName : connections.keySet()) {
+			ConnectionWrapper wrapper = connections.get(serverName);
+			if (wrapper != null) {
+				wrapper.setState(ConnectionState.CONNECTED, ConnectionState.CLOSED);
+				triggerBackgroundRebuild(serverName);
+			}
+		}
+	}
+
+	/**
+	 * Trigger cache reload (rebuilds all connections)
+	 */
+	public void triggerCacheReload() {
+		logger.info("Triggering cache reload");
+		invalidateAllCache();
+	}
+
+	/**
+	 * Safely close a single MCP client
+	 * @param serviceEntity Service entity containing the client
+	 * @param serverName Server name for logging
+	 * @return true if client was closed successfully, false otherwise
+	 */
+	private boolean closeClientSafely(McpServiceEntity serviceEntity, String serverName) {
+		if (serviceEntity == null) {
+			return false;
+		}
+
+		McpAsyncClient client = serviceEntity.getMcpAsyncClient();
+		if (client == null) {
+			return false;
+		}
+
+		try {
+			logger.debug("Closing MCP client for server: {}", serverName);
+			try {
+				client.closeGracefully()
+					.timeout(java.time.Duration.ofSeconds(5))
+					.doOnSuccess(v -> logger.debug("MCP client closed gracefully for server: {}", serverName))
+					.doOnError(e -> logger.warn("Error during graceful close for server: {}, will force close",
+							serverName, e))
+					.block();
+				Thread.sleep(200); // In background thread, safe to sleep
+				logger.debug("Successfully closed MCP client for server: {}", serverName);
+				return true;
+			}
+			catch (Exception gracefulEx) {
+				logger.warn("Graceful shutdown failed for server: {}, forcing close", serverName, gracefulEx);
+				client.close();
+				Thread.sleep(100); // In background thread, safe to sleep
+				return true;
+			}
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			logger.warn("Interrupted during client shutdown for server: {}, forcing close", serverName);
+			try {
+				client.close();
+			}
+			catch (Exception ex) {
+				logger.error("Error during force close after interruption for server: {}", serverName, ex);
+			}
+			return false;
+		}
+		catch (Exception e) {
+			logger.warn("Error closing MCP client for server: {}", serverName, e);
+			try {
+				client.close();
+			}
+			catch (Exception ex) {
+				logger.error("Error during final force close for server: {}", serverName, ex);
+			}
+			return false;
+		}
+	}
+
+	/**
+	 * Check connection health and rebuild if necessary
+	 * @param serverName Server name
+	 * @return true if connection is healthy
+	 */
+	public boolean checkConnectionHealth(String serverName) {
+		ConnectionWrapper wrapper = connections.get(serverName);
+		if (wrapper == null) {
+			return false;
+		}
+
+		ConnectionState state = wrapper.getState();
+		if (state != ConnectionState.CONNECTED) {
+			return false;
+		}
+
+		McpServiceEntity entity = wrapper.getServiceEntity();
+		if (entity == null || entity.getMcpAsyncClient() == null) {
+			return false;
+		}
+
+		// Check pending requests count (may indicate connection is stuck)
+		int pendingRequests = wrapper.getPendingRequests().get();
+		if (pendingRequests > MAX_PENDING_REQUESTS_THRESHOLD) {
+			logger.warn("Too many pending requests ({}) for server: {}, connection may be stuck", pendingRequests,
+					serverName);
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Connection statistics for monitoring
+	 */
+	public static class ConnectionStats {
+
+		private final String state;
+
+		private final int pendingRequests;
+
+		private final boolean hasEntity;
+
+		public ConnectionStats(String state, int pendingRequests, boolean hasEntity) {
+			this.state = state;
+			this.pendingRequests = pendingRequests;
+			this.hasEntity = hasEntity;
+		}
+
+		public String getState() {
+			return state;
+		}
+
+		public int getPendingRequests() {
+			return pendingRequests;
+		}
+
+		public boolean isHasEntity() {
+			return hasEntity;
+		}
+
+	}
+
+	/**
+	 * Get connection statistics for monitoring
+	 * @return Map of server name to connection stats
+	 */
+	public Map<String, ConnectionStats> getConnectionStats() {
+		Map<String, ConnectionStats> stats = new ConcurrentHashMap<>();
+		for (Map.Entry<String, ConnectionWrapper> entry : connections.entrySet()) {
+			ConnectionWrapper wrapper = entry.getValue();
+			ConnectionStats stat = new ConnectionStats(wrapper.getState().name(), wrapper.getPendingRequests().get(),
+					wrapper.getServiceEntity() != null);
+			stats.put(entry.getKey(), stat);
+		}
+		return stats;
+	}
+
+	/**
+	 * Update connection status for a server
+	 * @param serverName Server name
+	 * @param status Connection status
+	 * @param errorMessage Error message (null if no error)
+	 */
+	private void updateConnectionStatus(String serverName, McpConnectionStatus status, String errorMessage) {
+		ConnectionStatusInfo statusInfo = connectionStatusMap.computeIfAbsent(serverName,
+				k -> new ConnectionStatusInfo());
+		statusInfo.setStatus(status);
+		if (errorMessage != null) {
+			statusInfo.setErrorMessage(errorMessage);
+		}
+		else if (status == McpConnectionStatus.CONNECTED) {
+			// Clear error message when connected
+			statusInfo.setErrorMessage(null);
+		}
+	}
+
+	/**
+	 * Extract meaningful error message from exception
+	 * @param e Exception
+	 * @return Error message string
+	 */
+	private String extractErrorMessage(Exception e) {
+		if (e == null) {
+			return "Unknown error";
+		}
+
+		// Get root cause
+		Throwable rootCause = e;
+		while (rootCause.getCause() != null && rootCause.getCause() != rootCause) {
+			rootCause = rootCause.getCause();
+		}
+
+		String message = rootCause.getMessage();
+		if (message != null && !message.trim().isEmpty()) {
+			// Check for MCP protocol errors (like "Url is expired")
+			if (rootCause.getClass().getName().contains("McpError")) {
+				return message;
+			}
+			// Check for common error patterns
+			if (message.contains("Failed to initialize") || message.contains("Client failed to initialize")) {
+				// Try to extract more specific error from the message
+				return message;
+			}
+			return message;
+		}
+
+		return rootCause.getClass().getSimpleName() + ": "
+				+ (e.getMessage() != null ? e.getMessage() : "Unknown error");
+	}
+
+	/**
+	 * Get connection status for a server
+	 * @param serverName Server name
+	 * @return Connection status info, or null if not tracked
+	 */
+	public ConnectionStatusInfo getConnectionStatus(String serverName) {
+		return connectionStatusMap.get(serverName);
+	}
+
+	/**
+	 * Mark connection as disconnected (when connection is lost)
+	 * @param serverName Server name
+	 */
+	public void markConnectionDisconnected(String serverName) {
+		updateConnectionStatus(serverName, McpConnectionStatus.DISCONNECTED, null);
+	}
+
+	/**
+	 * Log connection error with throttling to avoid log spam
+	 * @param serverName Server name
+	 * @param message Error message prefix
+	 * @param exception Exception to log (can be null)
+	 */
+	private void logConnectionError(String serverName, String message, Exception exception) {
+		long currentTime = System.currentTimeMillis();
+		Long lastLogTime = lastErrorLogTimeMap.get(serverName);
+
+		String errorMessage = exception != null
+				? (exception.getMessage() != null ? exception.getMessage() : exception.getClass().getSimpleName())
+				: "Unknown error";
+
+		if (lastLogTime == null || (currentTime - lastLogTime) >= ERROR_LOG_THROTTLE_INTERVAL_MS) {
+			// First error or enough time has passed - log full error with stack trace
+			if (exception != null) {
+				logger.error("{} for server: {}. Error: {}", message, serverName, errorMessage, exception);
+			}
+			else {
+				logger.error("{} for server: {}. Error: {}", message, serverName, errorMessage);
+			}
+			lastErrorLogTimeMap.put(serverName, currentTime);
+		}
+		else {
+			// Recent error logged - use debug level with simple message
+			logger.debug("{} for server: {} (error throttled, last full log was {}ms ago). Error: {}", message,
+					serverName, currentTime - lastLogTime, errorMessage);
+		}
+	}
+
+	/**
+	 * Shutdown and close all connections
+	 */
+	@PreDestroy
+	public void shutdown() {
+		logger.info("Shutting down MCP cache manager");
+		int closedCount = 0;
+		for (Map.Entry<String, ConnectionWrapper> entry : connections.entrySet()) {
+			ConnectionWrapper wrapper = entry.getValue();
+			if (wrapper != null && wrapper.getServiceEntity() != null) {
+				if (closeClientSafely(wrapper.getServiceEntity(), entry.getKey())) {
+					closedCount++;
+				}
+			}
+		}
+		connections.clear();
+		configCache.clear();
+
+		// Cancel all health check tasks
+		for (String serverName : new ArrayList<>(healthCheckTasks.keySet())) {
+			cancelHealthCheck(serverName);
+		}
+
+		// Shutdown executors
+		healthCheckExecutor.shutdown();
+		rebuildExecutor.shutdown();
+		connectionExecutor.shutdown();
+		try {
+			if (!healthCheckExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+				healthCheckExecutor.shutdownNow();
+			}
+			if (!rebuildExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+				rebuildExecutor.shutdownNow();
+			}
+			if (!connectionExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+				connectionExecutor.shutdownNow();
+			}
+		}
+		catch (InterruptedException e) {
+			healthCheckExecutor.shutdownNow();
+			rebuildExecutor.shutdownNow();
+			connectionExecutor.shutdownNow();
+			Thread.currentThread().interrupt();
+		}
+
+		logger.info("MCP cache manager shutdown completed. Closed {} MCP clients.", closedCount);
+	}
+
+}

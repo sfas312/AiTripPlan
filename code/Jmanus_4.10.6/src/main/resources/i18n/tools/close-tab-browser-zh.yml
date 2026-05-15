@@ -1,0 +1,16 @@
+description: |
+  关闭指定标签页（默认为当前标签页）。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "tab_id": {
+              "type": "integer",
+              "description": "要关闭的标签页 ID（可选，默认为当前标签页）"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

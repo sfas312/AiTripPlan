@@ -1,0 +1,33 @@
+description: |
+  并行注册多个不同工具的执行。
+  此工具允许您批量注册多个函数调用，每个函数可以有自己的工具名称和参数。
+  注册后，使用 start-parallel-execution 并行执行所有注册的函数。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "functions": {
+              "type": "array",
+              "description": "函数请求数组，每个请求有自己的工具名称和参数",
+              "items": {
+                  "type": "object",
+                  "properties": {
+                      "tool_name": {
+                          "type": "string",
+                          "description": "此函数执行的工具名称"
+                      },
+                      "params": {
+                          "type": "object",
+                          "description": "此函数执行的输入参数"
+                      }
+                  },
+                  "required": ["tool_name"],
+                  "additionalProperties": false
+              }
+          }
+      },
+      "required": ["functions"],
+      "additionalProperties": false
+  }
+

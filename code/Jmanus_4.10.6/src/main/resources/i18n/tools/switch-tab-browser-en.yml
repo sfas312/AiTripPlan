@@ -1,0 +1,16 @@
+description: |
+  Switch to a specific tab.
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "tab_id": {
+              "type": "integer",
+              "description": "Tab ID to switch to"
+          }
+      },
+      "required": ["tab_id"],
+      "additionalProperties": false
+  }
+

@@ -1,0 +1,19 @@
+description: |
+  获取指定模板的内容。返回 JSON 格式的模板内容。
+  模板路径必须是预设模板路径，并且存在于 get-ppt-template-list 返回的内容中。
+  返回的 JSON 包含模板中所有可以修改的文本元素。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "path": {
+              "type": "string",
+              "description": "要检索的模板文件路径。必须是预设模板路径，并且存在于 get-ppt-template-list 返回的内容中。",
+              "minLength": 1
+          }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+  }
+

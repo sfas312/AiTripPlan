@@ -1,0 +1,16 @@
+description: |
+  Close a specified tab (defaults to current tab).
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "tab_id": {
+              "type": "integer",
+              "description": "Tab ID to close (optional, defaults to current tab)"
+          }
+      },
+      "required": [],
+      "additionalProperties": false
+  }
+

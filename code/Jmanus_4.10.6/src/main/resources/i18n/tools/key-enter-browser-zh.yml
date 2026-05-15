@@ -1,0 +1,16 @@
+description: |
+  在元素上按 Enter 键。使用此工具提交表单或触发操作。
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "index": {
+              "type": "integer",
+              "description": "要按 Enter 的元素索引。这对应于 ARIA 快照中每个交互元素显示的 idx 值（例如 idx=39）。"
+          }
+      },
+      "required": ["index"],
+      "additionalProperties": false
+  }
+

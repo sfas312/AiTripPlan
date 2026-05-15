@@ -1,0 +1,51 @@
+description: |
+  从本地文件系统读取文件内容。此操作符提供对可在同一执行上下文中的所有子计划中访问的文件的访问。
+
+  关键词：全局文件、根目录、根文件夹、根计划目录、全局文件读取操作、根文件访问、跨计划文件。
+
+  主要操作：
+  - 读取文件内容，支持可选的 offset 和 limit 参数
+    - path（必需）：要读取的文件路径
+    - offset（可选）：开始读取的行号（从 1 开始）。仅用于非常大的文件
+    - limit（可选）：要读取的行数。仅用于非常大的文件
+    - bypass_limit（可选）：如果为 true，则绕过 300 行限制以读取完整文件。对于非常大的文件请谨慎使用
+    - 输出格式：LINE_NUMBER|LINE_CONTENT（行号右对齐，填充到 6 个字符）
+    - 如果文件存在但为空，返回 "File is empty."
+    - 最佳实践：除非文件非常大，否则读取完整文件（省略 offset 和 limit）。对于超过 300 行的文件，使用 bypass_limit=true 或指定 offset/limit
+
+  功能特性：
+  - 支持文本文件和图像文件（JPEG/JPG、PNG、GIF、WebP）
+  - 在此处创建的文件可在执行上下文中的所有子计划中访问
+  - 可以并行读取多个文件以提高性能
+  
+  ## 文件读取最佳实践：
+  优先使用小范围信息获取方法：
+  1. **使用 EnhancedGrep**：用于在文件中搜索特定模式或关键词（最适用于目标信息检索）
+  2. **使用 offset/limit**：当你知道大致位置时，读取特定行范围
+  3. **使用 bypass_limit**：仅当你无法通过 grep 或限制读取获取所需信息，且需要完整文件内容时使用
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "path": {
+              "type": "string",
+              "description": "要读取的文件路径（相对路径，例如 'file.txt' 或 'subdir/file.txt'）"
+          },
+          "offset": {
+              "type": "integer",
+              "description": "可选：开始读取的行号（从 1 开始）。仅用于无法一次性读取的非常大的文件"
+          },
+          "limit": {
+              "type": "integer",
+              "description": "可选：要读取的行数。仅用于非常大的文件。与 offset 配合使用以进行部分文件读取"
+          },
+          "bypass_limit": {
+              "type": "boolean",
+              "description": "可选：如果为 true，则绕过 300 行限制以读取完整文件。对于非常大的文件请谨慎使用。默认值：false"
+          }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+  }
+

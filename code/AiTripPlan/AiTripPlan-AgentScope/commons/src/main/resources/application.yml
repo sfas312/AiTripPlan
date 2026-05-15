@@ -1,0 +1,7 @@
+spring:
+  config:
+    import: optional:classpath:.env[.properties]
+
+
+app:
+  username: ${USERNAME}

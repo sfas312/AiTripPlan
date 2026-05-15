@@ -1,0 +1,43 @@
+description: |
+  将 Markdown 文件转换为 DOCX（Word 文档）格式。此工具提供对根计划目录中文件的访问，
+  并将 Markdown 内容转换为 DOCX 格式，包含正确的格式设置，包括标题、列表、表格、代码块等。
+
+  关键词：markdown 转 docx，markdown 转 word，转换 markdown，docx 转换，
+  word 文档转换，根目录文件，根计划文件夹。
+
+  主要操作：
+  - 将 Markdown 文件（.md 或 .markdown）转换为 DOCX 格式
+    - path（必需）：要转换的 Markdown 文件路径（根计划目录中的相对路径）
+    - output_path（可选）：输出 DOCX 文件路径。如果未提供，则使用与输入相同的名称，扩展名为 .docx
+    - 输出文件保存在根计划目录中（rootPlanId/）
+    - 支持 Markdown 功能：标题、列表、表格、代码块、水平线、内联格式
+
+  功能：
+  - 将 Markdown 文件转换为 Word 文档格式
+  - 保留文档结构（标题、段落、列表、表格）
+  - 使用等宽字体处理代码块
+  - 支持项目符号和编号列表
+  - 将 Markdown 表格转换为 Word 表格
+  - 支持 Markdown 格式的图片：![alt text](image_path)
+    - 图片会嵌入到 Word 文档中
+    - 支持 PNG、JPEG、GIF、BMP、WMF、EMF 格式
+    - 图片路径相对于根计划目录解析
+  - 文件保存在根计划目录中，以便所有子计划访问
+
+parameters: |
+  {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "要转换的 Markdown 文件路径（根计划目录中的相对路径，例如 'file.md' 或 'subdir/file.md'）"
+      },
+      "output_path": {
+        "type": "string",
+        "description": "可选：输出 DOCX 文件路径。如果未提供，则使用与输入文件相同的名称，扩展名为 .docx（例如 'file.md' -> 'file.docx'）"
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  }
+

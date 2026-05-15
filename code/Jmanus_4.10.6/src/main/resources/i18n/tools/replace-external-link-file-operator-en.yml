@@ -1,0 +1,51 @@
+description: |
+  Perform exact string replacement in existing files in the external_link directory (linked_external folder).
+  This operator provides access to files in the external folder that is linked to the root plan directory.
+
+  **Prerequisites:**
+  - The external folder must be configured in system settings before using this operator
+  - Set 'lynxe.general.externalLinkedFolder' in system settings to point to your external folder
+  - The external folder link will be automatically created when a plan starts (if configured)
+  - If external_link is not configured, operations will fail with a clear error message indicating the configuration is missing
+
+  Keywords: external files, external_link, linked_external, external folder,
+  external file replace operations, replace text, StrReplace.
+
+  Operation:
+  - Perform precise, targeted edits without rewriting entire files in external_link directory
+    - file_path (required): Relative file path within external_link directory (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt'). File will be auto-created if it doesn't exist.
+    - old_string (required): The exact text to find and replace. Must match file content exactly (including all whitespace, indentation, line breaks). Must be unique in the file - if multiple occurrences exist, provide more context to make it unique.
+    - new_string (required): The text to replace it with. Must be different from old_string. Can be an empty string to delete content.
+    - CRITICAL: old_string must be unique in the file (will fail if multiple occurrences found)
+    - Matches are case-sensitive and whitespace-sensitive (must match exactly including indentation)
+    - Only replaces the first (and only) occurrence
+
+  Features:
+  - Files created here are accessible by all sub-plans within the execution context
+  - Exact matching ensures precise replacements
+  - Uniqueness validation prevents accidental multiple replacements
+  - File will be auto-created if it doesn't exist
+  - Files are stored in the external folder linked to the root plan directory
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "Relative file path within external_link directory (filename or relative path, e.g., 'file.txt' or 'subdir/file.txt'). File will be auto-created if it doesn't exist."
+          },
+          "old_string": {
+              "type": "string",
+              "description": "The exact text to find and replace. Must match file content exactly (including all whitespace, indentation, line breaks). Must be unique in the file - if multiple occurrences exist, provide more context to make it unique."
+          },
+          "new_string": {
+              "type": "string",
+              "description": "The text to replace it with. Must be different from old_string. Can be an empty string to delete content."
+          }
+      },
+      "required": ["file_path", "old_string", "new_string"],
+      "additionalProperties": false
+  }
+
+

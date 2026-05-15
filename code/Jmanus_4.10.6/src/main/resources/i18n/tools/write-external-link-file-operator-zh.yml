@@ -1,0 +1,45 @@
+description: |
+  在外部链接目录（linked_external 文件夹）中创建新文件或完全覆盖现有文件。
+  此操作符提供对链接到根计划目录的外部文件夹中的文件的访问。
+
+  **前置条件：**
+  - 使用此操作符前，必须在系统设置中配置外部文件夹
+  - 在系统设置中设置 'lynxe.general.externalLinkedFolder' 指向您的外部文件夹
+  - 如果已配置，计划启动时将自动创建外部文件夹链接
+  - 如果未配置 external_link，操作将失败并显示清晰的错误消息，提示缺少配置
+
+  关键词：外部文件、external_link、linked_external、外部文件夹、外部文件写入操作、写入文件、创建文件。
+
+  操作：
+  - 在 external_link 目录中创建新文件或完全覆盖现有文件
+    - file_path（必需）：external_link 目录内的相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）。如果父目录不存在，将自动创建。
+    - contents（必需）：要写入文件的完整内容。这将是操作后的整个文件内容。如果文件存在，所有先前内容将被覆盖。
+    - 如果文件不存在则创建新文件
+    - 完全覆盖现有文件（所有先前内容将丢失）
+    - 如果父目录不存在，将自动创建
+    - 覆盖前必须先读取文件以防止意外数据丢失
+    - 编辑现有文件时尽可能使用 StrReplace
+    - 仅用于创建新文件或完全重写文件
+
+  功能特性：
+  - 在此处创建的文件可在执行上下文中的所有子计划中访问
+  - 如果父目录不存在，将自动创建
+  - 文件存储在链接到根计划目录的外部文件夹中
+
+parameters: |
+  {
+      "type": "object",
+      "properties": {
+          "file_path": {
+              "type": "string",
+              "description": "external_link 目录内的相对文件路径（文件名或相对路径，例如 'file.txt' 或 'subdir/file.txt'）。如果父目录不存在，将自动创建。"
+          },
+          "contents": {
+              "type": "string",
+              "description": "要写入文件的完整内容。这将是操作后的整个文件内容。如果文件存在，所有先前内容将被覆盖。"
+          }
+      },
+      "required": ["file_path", "contents"],
+      "additionalProperties": false
+  }
+
