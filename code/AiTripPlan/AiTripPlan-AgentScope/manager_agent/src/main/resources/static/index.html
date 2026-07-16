@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AiTripPlan · 智能旅行规划</title>
+  <style>
+    :root { --ink:#172033; --muted:#697386; --primary:#315efb; --line:#e7eaf0; --bg:#f5f7fb; --good:#0f9d70; }
+    * { box-sizing:border-box; } body { margin:0; font-family:"Microsoft YaHei", "PingFang SC", sans-serif; color:var(--ink); background:var(--bg); }
+    header { background:#fff; border-bottom:1px solid var(--line); } .bar { max-width:1080px; height:72px; margin:auto; display:flex; align-items:center; justify-content:space-between; padding:0 24px; }
+    .brand { display:flex; align-items:center; gap:11px; font-weight:700; font-size:19px; } .mark { width:34px; height:34px; display:grid; place-items:center; border-radius:10px; background:linear-gradient(140deg,#315efb,#6c7dff); color:#fff; }
+    .tag { color:var(--muted); font-size:13px; } main { max-width:1080px; margin:42px auto; padding:0 24px 48px; } .hero { margin-bottom:24px; } h1 { font-size:31px; margin:0 0 10px; letter-spacing:-.5px; } .hero p { margin:0; color:var(--muted); }
+    .card { background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 30px rgba(27,39,75,.05); } .composer { padding:22px; } label { display:block; font-size:14px; font-weight:600; margin-bottom:10px; }
+    textarea { width:100%; min-height:124px; resize:vertical; border:1px solid #d9deea; border-radius:11px; padding:14px; font:15px/1.65 inherit; outline:none; } textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(49,94,251,.12); }
+    .actions { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:14px; } .hint { color:var(--muted); font-size:13px; } button { border:0; border-radius:9px; padding:11px 19px; cursor:pointer; background:var(--primary); color:#fff; font:600 14px inherit; } button:disabled { background:#aab5d1; cursor:wait; }
+    #status { display:none; margin-top:16px; padding:12px 14px; border-radius:9px; font-size:14px; } #status.loading { display:block; color:#315efb; background:#eef3ff; } #status.error { display:block; color:#b33b32; background:#fff1f0; }
+    #result { display:none; margin-top:24px; } .summary { padding:19px 22px; display:flex; align-items:center; justify-content:space-between; gap:18px; } .summary h2 { margin:0 0 5px; font-size:18px; } .summary p { margin:0; color:var(--muted); font-size:14px; }
+    .score { min-width:78px; text-align:center; padding:9px; border-radius:10px; color:var(--good); background:#e8f8f1; font-size:24px; font-weight:700; } .score small { display:block; font-size:11px; font-weight:500; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; } .result-card { padding:20px; min-width:0; } .result-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; } .result-head h3 { margin:0; font-size:16px; }
+    .badge { padding:4px 8px; border-radius:99px; color:var(--good); background:#e8f8f1; font-size:12px; } .badge.bad { color:#b33b32; background:#fff1f0; } pre { margin:0; white-space:pre-wrap; word-break:break-word; font:14px/1.7 "Microsoft YaHei", sans-serif; color:#35405a; }
+    @media (max-width:720px) { main { margin-top:26px; } h1 { font-size:26px; } .grid { grid-template-columns:1fr; } .actions { align-items:flex-end; flex-direction:column; } .bar { padding:0 18px; } }
+  </style>
+</head>
+<body>
+  <header><div class="bar"><div class="brand"><div class="mark">✦</div>AiTripPlan</div><div class="tag">AgentScope · A2A · Baidu Map MCP</div></div></header>
+  <main>
+    <section class="hero"><h1>规划下一段旅程</h1><p>输入目的地、天数、预算和偏好，系统将协同路线与行程 Agent 生成计划。</p></section>
+    <section class="card composer">
+      <label for="prompt">你的旅行需求</label>
+      <textarea id="prompt" placeholder="例如：请规划深圳到惠州 2 日自驾游，2 人，预算 2000 元，偏好海边、美食和轻松行程。">请规划深圳到惠州 2 日自驾游，2 人，预算 2000 元，偏好海边、美食和轻松行程。</textarea>
+      <div class="actions"><span class="hint">会调用路线 Agent、行程 Agent 与百度地图 MCP。</span><button id="submit">生成旅行计划</button></div>
+      <div id="status"></div>
+    </section>
+    <section id="result">
+      <div class="card summary"><div><h2 id="summary-title">规划结果</h2><p id="summary-text"></p></div><div class="score"><span id="score">-</span><small>/ 10</small></div></div>
+      <div class="grid">
+        <article class="card result-card"><div class="result-head"><h3>路线方案</h3><span id="route-badge" class="badge">等待结果</span></div><pre id="route-content"></pre></article>
+        <article class="card result-card"><div class="result-head"><h3>行程方案</h3><span id="trip-badge" class="badge">等待结果</span></div><pre id="trip-content"></pre></article>
+      </div>
+    </section>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    const status = $('status'), submit = $('submit');
+    const setBadge = (id, ok) => { const el=$(id); el.textContent=ok?'执行成功':'执行失败'; el.className='badge'+(ok?'':' bad'); };
+    submit.addEventListener('click', async () => {
+      const prompt = $('prompt').value.trim();
+      if (!prompt) { status.className='error'; status.textContent='请输入旅行需求。'; return; }
+      submit.disabled=true; status.className='loading'; status.textContent='正在协调路线与行程 Agent，请稍候…'; $('result').style.display='none';
+      try {
+        const response = await fetch('/api/plan', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt}) });
+        const data = await response.json(); if (!response.ok) throw new Error(data.error || '请求失败');
+        $('score').textContent=data.metrics.overallScore; $('summary-title').textContent=data.success?'规划完成':'规划已返回，但部分约束未满足';
+        $('summary-text').textContent=`路线 Agent ${data.route.latencyMs} ms · 行程 Agent ${data.trip.latencyMs} ms`;
+        $('route-content').textContent=data.route.content || data.route.error || '未返回路线结果'; $('trip-content').textContent=data.trip.content || data.trip.error || '未返回行程结果';
+        setBadge('route-badge', data.route.success); setBadge('trip-badge', data.trip.success); $('result').style.display='block'; status.className=''; status.textContent='';
+      } catch (error) { status.className='error'; status.textContent='请求失败：'+error.message; }
+      finally { submit.disabled=false; }
+    });
+  </script>
+</body>
+</html>
