@@ -1,5 +1,13 @@
 server:
   port: 8085
+  tomcat:
+    connection-timeout: 120s
+    keep-alive-timeout: 120s
+    max-keep-alive-requests: 200
+
+spring:
+  codec:
+    max-in-memory-size: 10MB
 
 # A2A协议服务端
 agentscope:
@@ -7,4 +15,6 @@ agentscope:
     server:
       enabled: true
     nacos:
-      server-addr: localhost:8848
+      server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:}
