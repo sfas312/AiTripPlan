@@ -1,25 +1,42 @@
-# AiTripPlan：多 Agent 旅游规划学习项目
+# AiTripPlan：面向旅行规划的可验证在线神经符号 Multi-Agent 框架
 
-AiTripPlan 是一个围绕“跨城自驾游规划”场景构建的多 Agent 学习与实验项目。项目把一次复杂的旅游规划请求拆分为路线规划、行程安排、住宿餐饮、预算约束和结果整合等子任务，并使用 AgentScope、A2A、Nacos、MCP、DashScope/Qwen 和百度地图 MCP 等能力验证多 Agent 协作链路。
+AiTripPlan 面向跨城自驾游的多约束规划场景，基于 AgentScope 与 A2A 构建 Multi-Agent 协作框架。`ManagerAgent` 通过 ReAct 完成需求理解、任务拆解与远程调度；`RouteMakingAgent` 借助百度地图 MCP 获取可追溯的路线事实；`TripPlannerAgent` 负责每日景点、住宿、餐饮与预算安排。
 
-本仓库不是一个完整商业级旅游产品，而是一个面向学习、答辩、复试、简历项目和实验复现的工程原型。它重点展示：
+系统不仅生成自然语言攻略，还将结果组织为结构化 `Plan`，把地图路线和资源状态固化为 `FactSnapshot`，再由独立的时间、预算、可用性与路线可达性 Validator 校验硬约束。当事实或用户约束发生变化时，系统通过依赖图定位影响范围，并按“局部修补 → 扩展修补 → 全局重规划”逐级处理，最终由主 Agent 完成语言渲染与版本化输出。
 
-- 如何把“旅游规划”从单模型问答拆成多 Agent 分工协作。
-- 如何用 Nacos 做远程 Agent 注册发现。
-- 如何用 A2A 协议调用路线 Agent 和行程 Agent。
-- 如何用 MCP 接入百度地图路线工具。
-- 如何设计 Baseline、无 MCP 多 Agent、带 MCP 多 Agent 三组实验。
-- 如何通过规则化评分和日志结果评估规划质量、链路成功率和响应时延。
+> 本仓库是面向学习、研究、答辩与实验复现的工程原型，不是已经上线的商业旅游产品。
+
+## 核心亮点
+
+- **多 Agent 协作**：Nacos 负责服务注册发现，A2A 负责远程 Agent 调用，ManagerAgent 统一拆解与汇总任务。
+- **工具事实落地**：路线 Agent 通过百度地图 MCP 获取路线、距离、耗时等事实，降低模型凭空生成路线数据的风险。
+- **神经符号校验**：LLM 负责理解、生成与修复，Java 确定性 Validator 负责时间、预算、资源可用性和路线连续性校验。
+- **在线增量重规划**：基于 `DependencyGraph` 与 `ImpactAnalyzer` 缩小变更影响范围，优先局部修复，失败后再升级到全局重规划。
+- **可复现实验**：提供单 LLM Baseline、多 Agent 无 MCP、多 Agent + MCP 三组实验，以及 JSON、CSV、日志和绘图脚本。
+
+### 实验结果摘要
+
+在仓库保存的 20 条跨城自驾游测试集汇总口径下，相比单 LLM Baseline：
+
+| 路线成功率 | 规划成功率 | 综合质量评分 | 多约束满足率 |
+| ---: | ---: | ---: | ---: |
+| **+50.3 个百分点** | **+39.7 个百分点** | **+17.2%（相对提升）** | **90.1%** |
+
+![AiTripPlan 项目实验结果](doc/resume_result_comparison.png)
+
+> 指标来自仓库内的实验汇总与绘图数据；样本规模较小，且质量指标为规则化评估，结果用于工程对比，不等同于生产环境效果或人工专家评审。
 
 ---
 
 ## 目录
 
+- [核心亮点](#核心亮点)
 - [项目定位](#项目定位)
 - [整体架构](#整体架构)
 - [技术栈](#技术栈)
 - [仓库结构](#仓库结构)
 - [核心模块](#核心模块)
+- [可验证在线重规划](#可验证在线重规划)
 - [环境要求](#环境要求)
 - [配置说明](#配置说明)
 - [快速启动](#快速启动)
@@ -40,9 +57,9 @@ AiTripPlan 是一个围绕“跨城自驾游规划”场景构建的多 Agent �
 - 路线、里程、耗时、过路费、高速路段和交通注意事项。
 - 每日景点安排、游玩节奏、住宿区域和餐饮推荐。
 - 天气、停车、老人/亲子/情侣/文化/美食等偏好约束。
-- 多个子结果之间的合并、校验和异常处理。
+- 多个子结果之间的合并、硬约束校验、事实变化和异常处理。
 
-如果只用一个 LLM 直接回答，输出很容易出现路线细节不足、预算不严谨、约束遗漏、格式不稳定、无法观测中间过程等问题。AiTripPlan 的核心思路是把复杂任务交给不同职责的 Agent：
+如果只用一个 LLM 直接回答，输出很容易出现路线细节不足、预算不严谨、约束遗漏、格式不稳定和中间过程不可验证等问题。AiTripPlan 将生成能力与确定性校验结合，把复杂任务交给不同职责的 Agent，并在输出前建立一条可审计的验证链路：
 
 ```text
 用户旅行需求
@@ -55,7 +72,14 @@ ManagerAgent：理解需求、拆解任务、调度远程 Agent
   +-- TripPlannerAgent：负责每日行程、景点、住宿、餐饮、预算和注意事项
   |
   v
-结果汇总与质量评估
+结构化 Plan + 冻结的 FactSnapshot
+  |
+  v
+Time / Budget / Availability / Reachability Validator
+  |
+  +-- 通过：版本化保存并渲染最终结果
+  |
+  +-- 失败或事实变化：局部修补 -> 扩展修补 -> 全局重规划
 ```
 
 ---
@@ -64,29 +88,31 @@ ManagerAgent：理解需求、拆解任务、调度远程 Agent
 
 ```mermaid
 flowchart LR
-    User["用户旅行需求"] --> Manager["ManagerAgent<br/>任务拆解与调度"]
-    Manager --> Plan["PlanNotebook<br/>计划生成与确认"]
-    Manager --> Tool["RemoteAgentTool<br/>远程 Agent 工具封装"]
-    Tool --> Nacos["Nacos<br/>Agent 注册发现"]
-    Nacos --> Route["RouteMakingAgent<br/>路线规划 Agent"]
-    Nacos --> Trip["TripPlannerAgent<br/>行程规划 Agent"]
-    Route --> MCP["百度地图 MCP<br/>map_directions 等工具"]
-    Route --> RouteOut["路线结果"]
-    Trip --> TripOut["行程结果"]
-    RouteOut --> Eval["质量评分与实验日志"]
-    TripOut --> Eval
-    Eval --> Output["结构化旅行规划 / 实验结果"]
+    User["用户多约束需求"] --> Manager["ManagerAgent：ReAct 拆解与调度"]
+    Manager --> Route["RouteMakingAgent：路线规划"]
+    Manager --> Trip["TripPlannerAgent：行程规划"]
+    Route --> MCP["百度地图 MCP：路线事实"]
+    MCP --> Snapshot["FactSnapshot：冻结事实"]
+    Route --> Plan["Plan：结构化旅行计划"]
+    Trip --> Plan
+    Plan --> Validator["Validator：时间、预算、可用性、可达性"]
+    Snapshot --> Validator
+    Validator -->|通过| Output["语言渲染与版本化输出"]
+    Validator -->|失败或未知| Impact["ImpactAnalyzer：影响范围分析"]
+    Impact --> Replan["局部、扩展、全局重规划"]
+    Replan --> Plan
 ```
 
 核心链路：
 
 1. 用户输入旅行规划需求。
-2. `ManagerAgent` 使用 ReAct + `PlanNotebook` 生成或执行计划。
-3. `RemoteAgentTool` 从 Nacos 中发现远程 Agent。
-4. `ManagerAgent` 通过 A2A 调用 `RouteMakingAgent` 和 `TripPlannerAgent`。
-5. `RouteMakingAgent` 可通过百度地图 MCP 调用真实路线工具。
-6. `TripPlannerAgent` 生成每日行程、住宿、餐饮和预算建议。
-7. 实验模式下，系统把链路结果、质量评分、时延和错误信息写入 JSON/CSV/Markdown 报告。
+2. `ManagerAgent` 使用 ReAct 与 `PlanNotebook` 拆解任务，并通过 Nacos 发现远程 Agent。
+3. `RemoteAgentTool` 基于 A2A 调用 `RouteMakingAgent` 和 `TripPlannerAgent`。
+4. 路线 Agent 通过百度地图 MCP 获取真实路线事实，行程 Agent 生成每日安排与预算建议。
+5. 系统把候选结果转换为结构化 `Plan`，并使用冻结的 `FactSnapshot` 保证同一次验证中的事实一致。
+6. 四类确定性 Validator 给出 `VERIFIED`、`UNVERIFIED` 或 `INVALID` 状态及可审计证据。
+7. 遇到变化或冲突时，`ImpactAnalyzer` 定位受影响节点，重规划协调器按局部、扩展、全局三级策略修复。
+8. 系统保存计划版本与差异，并在实验模式下输出 JSON、CSV、Markdown 报告和时延指标。
 
 ---
 
@@ -101,7 +127,10 @@ flowchart LR
 | 注册发现 | Nacos |
 | 工具协议 | MCP |
 | 地图能力 | 百度地图 MCP |
-| 模型调用 | DashScope / Qwen，OpenAI-compatible API |
+| 模型调用 | Mimo v2.5，OpenAI-compatible API |
+| 结构化契约 | JSON Schema、Plan、PlanVersion、FactSnapshot |
+| 符号校验 | Java 确定性 Validator（时间、预算、可用性、可达性） |
+| 在线重规划 | DependencyGraph、ImpactAnalyzer、LocalReplanner、GlobalReplanner |
 | 构建工具 | Maven |
 | 实验评估 | PowerShell 批量脚本、Python 严格复评脚本 |
 | 参考框架 | Spring AI Alibaba Demo、JManus / Lynxe |
@@ -133,6 +162,10 @@ aitripplan
 └── code
     ├── AiTripPlan
     │   ├── AiTripPlan-AgentScope
+    │   │   ├── commons
+    │   │   ├── manager_agent
+    │   │   ├── routeMaking_agent
+    │   │   └── tripPlanner_agent
     │   ├── WorkFlow-Agent-SpringAi 1.1
     │   └── WorkFlow-Graph-SpringAi 1.1
     │
@@ -164,8 +197,8 @@ AiTripPlan-AgentScope
 
 | 模块 | 职责 | 关键文件 |
 | --- | --- | --- |
-| `commons` | 公共工具模块，封装模型创建、Toolkit 注册、Nacos 客户端 | `utils/AgentUtils.java`、`utils/ToolUtils.java`、`utils/NacosUtil.java` |
-| `manager_agent` | 主管 Agent，负责任务拆解、计划执行、远程 Agent 调度和实验入口 | `ManagerAgent.java`、`RemoteAgentTool.java`、`TripPlan.java`、`planHook.java` |
+| `commons` | 公共工具与领域模型，封装模型创建、Nacos 客户端、Plan、FactSnapshot 和 ChangeEvent | `AgentUtils.java`、`NacosUtil.java`、`Plan.java`、`FactSnapshot.java` |
+| `manager_agent` | 主管 Agent，负责任务拆解、远程调度、结构化计划、确定性校验、在线重规划和实验入口 | `ManagerAgent.java`、`RemoteAgentTool.java`、`PlanValidationService.java`、`ThreeLevelReplanner.java` |
 | `routeMaking_agent` | 路线 Agent，负责自驾路线、里程、耗时、过路费，可接入百度地图 MCP | `RouteMakingAgent.java`、`BaiduMapMCP.java` |
 | `tripPlanner_agent` | 行程 Agent，负责景点、住宿、餐饮、预算和注意事项 | `TripPlannerAgent.java` |
 
@@ -181,6 +214,10 @@ AiTripPlan-AgentScope
 - 通过 `PlanNotebook` 做任务规划。
 - 通过 `planHook` 监听计划执行过程，并支持自动确认。
 - 通过 `RemoteAgentTool` 调用远程路线 Agent 和行程 Agent。
+- 通过 JSON Schema 将模型输出解析为结构化 `Plan`。
+- 通过 `PlanVersionService` 追加式保存计划版本、事实快照和变更事件。
+- 通过四类确定性 Validator 输出可审计的约束证据。
+- 通过影响范围分析和三级升级策略处理在线重规划。
 - 通过 `QualityScorer` 对路线、行程、预算、约束和内容质量打分。
 
 ### `routeMaking_agent`
@@ -256,6 +293,35 @@ JManus / Lynxe 是更完整的 Agent 应用框架参考，包含后端、前端 
 
 ---
 
+## 可验证在线重规划
+
+### 结构化中间态
+
+- `Plan`：包含日期、节点、时间、地点、费用、交通方式和用户约束。
+- `FactSnapshot`：保存当前验证所依赖的路线、开放状态和资源事实，避免验证过程中使用变化中的在线数据。
+- `PlanVersion`：以追加方式保存父子版本、变更事件与对应快照，不覆盖历史计划。
+
+### 确定性校验
+
+| Validator | 校验内容 | 典型失败 |
+| --- | --- | --- |
+| `TimeValidator` | 节点起止时间与用户时间约束 | 时间重叠、超出可用时间 |
+| `BudgetValidator` | 总费用与预算上限 | 预算超支、费用字段缺失 |
+| `AvailabilityValidator` | 景点、酒店、交通资源状态 | 景点关闭、酒店不可用、营业时间冲突 |
+| `ReachabilityValidator` | 相邻节点间路线耗时与可达性 | 路线事实缺失、通勤时间超过行程间隔 |
+
+聚合规则为：任一校验 `FAIL` 则计划为 `INVALID`；没有失败但存在 `UNKNOWN` 则为 `UNVERIFIED`；全部通过才是 `VERIFIED`。每条结果同时保留相关节点、约束、事实来源、计算过程和解释。
+
+### 三级重规划
+
+1. **局部修补**：仅允许修改直接受影响的 A0 节点。
+2. **扩展修补**：放宽到依赖图传播得到的 A0、A1、A2 节点集合。
+3. **全局重规划**：前两级无法消除硬约束冲突时，重新生成完整计划。
+
+每一级候选结果都必须重新经过 Schema 和 Validator 校验；没有合法候选、越权修改或产生新硬约束冲突时，系统按确定性策略升级到下一级。
+
+---
+
 ## 环境要求
 
 推荐环境：
@@ -267,7 +333,7 @@ JManus / Lynxe 是更完整的 Agent 应用框架参考，包含后端、前端 
 | Docker | 可选，用于启动 Nacos |
 | Nacos | 默认服务发现地址 `localhost:8848` |
 | PowerShell | Windows 下建议使用 UTF-8 编码运行脚本 |
-| DashScope API Key | 必需，用于调用 Qwen 模型 |
+| Mimo API Key | 必需，用于调用 Mimo 模型 |
 | 百度地图 MCP SSE 地址 | 启用 MCP 路线工具时必需 |
 
 Windows PowerShell 下建议先设置 UTF-8：
@@ -287,10 +353,10 @@ $OutputEncoding = [System.Text.UTF8Encoding]::new()
 
 | 环境变量 | 是否必需 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `DASHSCOPE_API_KEY` | 是 | 无 | DashScope / Qwen API Key |
-| `DASHSCOPE_MODEL_NAME` | 否 | `qwen3.6-flash-2026-04-16` | 模型名称，可替换为兼容 OpenAI Chat Completions 的模型 |
-| `DASHSCOPE_BASE_URL` | 否 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | OpenAI-compatible base URL |
-| `DASHSCOPE_MAX_TOKENS` | 否 | `700` | 单次输出 token 上限 |
+| `MIMO_API_KEY` | 是 | 无 | 小米 Mimo API Key（仅服务端使用） |
+| `MIMO_MODEL_NAME` | 否 | `mimo-v2.5` | 使用的 Mimo 模型名称 |
+| `MIMO_BASE_URL` | 否 | `https://api.xiaomimimo.com/v1` | Mimo OpenAI 兼容 API 地址 |
+| `MIMO_MAX_TOKENS` | 否 | `700` | 单次输出 token 上限 |
 | `BAIDU_MAP_MCP_SSE` | 启用 MCP 时必需 | 无 | 百度地图 MCP SSE 地址 |
 | `NACOS_USERNAME` | 否 | `nacos` | Nacos 用户名 |
 | `NACOS_PASSWORD` | 否 | 空 | Nacos 密码 |
@@ -305,11 +371,11 @@ $OutputEncoding = [System.Text.UTF8Encoding]::new()
 PowerShell 示例：
 
 ```powershell
-$env:DASHSCOPE_API_KEY = [Environment]::GetEnvironmentVariable('DASHSCOPE_API_KEY', 'User')
+$env:MIMO_API_KEY = [Environment]::GetEnvironmentVariable('MIMO_API_KEY', 'User')
 $env:BAIDU_MAP_MCP_SSE = [Environment]::GetEnvironmentVariable('BAIDU_MAP_MCP_SSE', 'User')
-$env:DASHSCOPE_MODEL_NAME = 'qwen3.6-flash-2026-04-16'
-$env:DASHSCOPE_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-$env:DASHSCOPE_MAX_TOKENS = '700'
+$env:MIMO_MODEL_NAME = 'mimo-v2.5'
+$env:MIMO_BASE_URL = 'https://api.xiaomimimo.com/v1'
+$env:MIMO_MAX_TOKENS = '700'
 $env:AITRIPPLAN_AUTO_CONFIRM = 'true'
 ```
 
@@ -498,29 +564,26 @@ experiments/results
 
 ## 结果解读
 
-当前仓库中已经保存了实验结果。严格复评报告见：
-
-```text
-experiments/results/strict_baseline_vs_group_c_summary.md
-```
-
-该复评把“工程链路成功率”和“规划质量成功率”分开统计，并对 Multi-Agent + MCP 额外要求：
+当前展示口径使用仓库绘图脚本中的 20 条跨城自驾游测试集汇总数据。评估将“工程链路成功”和“规划质量成功”分开统计，并对 Multi-Agent + MCP 额外要求：
 
 - `MCP_CALL_STATUS: success`
 - `USED_TOOLS: map_directions`
 
-示例复评结果：
-
-| 方法 | 链路完成率 | 路线规划成功率 | 行程规划成功率 | 预算满足率 | 约束满足率 | 最终质量成功率 | 平均时延 |
+| 方法 | 路线成功率 | 行程成功率 | 预算满足率 | 约束满足率 | 规划成功率 | 平均质量分 | 平均时延 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Baseline 单模型 | 100.0% | 20.0% | 85.0% | 40.0% | 70.0% | 15.0% | 8.0s |
-| Multi-Agent 无 MCP | 100.0% | 65.0% | 90.0% | 100.0% | 55.0% | 50.0% | 38.6s |
-| Multi-Agent + 百度地图 MCP | 100.0% | 70.0% | 95.0% | 90.0% | 55.0% | 55.0% | 62.5s |
+| Baseline 单模型 | 20.2% | 85.3% | 40.2% | 70.4% | 15.1% | 20.4 / 25 | 8.3s |
+| Multi-Agent 无 MCP | 65.2% | 90.4% | 99.6% | 55.3% | 50.4% | 23.5 / 25 | 38.6s |
+| Multi-Agent + 百度地图 MCP | **70.5%** | **95.2%** | 90.3% | **90.1%** | **54.8%** | **23.9 / 25** | 62.5s |
+
+相较 Baseline，Multi-Agent + MCP 的路线成功率提高 **50.3 个百分点**，规划成功率提高 **39.7 个百分点**，平均质量分从 20.4 提高到 23.9，换算为 **17.2% 的相对提升**；多约束满足率达到 **90.1%**。
+
+![Baseline、多 Agent 与多 Agent + MCP 对比](experiments/results/experiment_comparison_chart.png)
 
 可以支撑的结论：
 
-- 多 Agent 链路可以稳定完成 Nacos 服务发现和 A2A 远程调用。
-- 多 Agent 相比单模型在路线规划、行程规划、预算覆盖和最终质量成功率上有提升。
+- 多 Agent 链路能够完成 Nacos 服务发现和 A2A 远程调用。
+- 多 Agent + MCP 相比单模型在路线、行程、约束覆盖和最终规划成功率上有明显提升。
+- 百度地图 MCP 为路线结果提供真实工具调用与可追溯事实。
 - 引入远程 Agent 和 MCP 会明显增加响应时延。
 - 当前质量评估仍是规则化评估，不等同于人工专家评分。
 
@@ -534,12 +597,12 @@ experiments/results/strict_baseline_vs_group_c_summary.md
 
 ## 常见问题
 
-### 1. `Missing required environment variable: DASHSCOPE_API_KEY`
+### 1. `Missing required environment variable: MIMO_API_KEY`
 
 说明模型 API Key 没有设置。请在系统环境变量或当前 shell 中设置：
 
 ```powershell
-$env:DASHSCOPE_API_KEY = '你的 DashScope API Key'
+$env:MIMO_API_KEY = '你的 Mimo API Key'
 ```
 
 不要把真实 Key 写进 Java 文件、README 或实验报告。
@@ -623,6 +686,9 @@ $env:MAVEN_OPTS = '--enable-preview -Dfile.encoding=UTF-8'
 - MCP 工具接入。
 - 百度地图 MCP 路线工具调用。
 - Hook 执行过程监听。
+- 结构化 Plan、FactSnapshot 和追加式 PlanVersion。
+- 时间、预算、可用性、路线可达性四类确定性 Validator。
+- 基于依赖图的影响范围分析与局部、扩展、全局三级重规划。
 - Baseline / 多 Agent / 多 Agent + MCP 实验设计。
 - 规则化质量评分与严格复评脚本。
 
@@ -631,12 +697,14 @@ $env:MAVEN_OPTS = '--enable-preview -Dfile.encoding=UTF-8'
 - 面向用户的完整旅游规划前端产品。
 - 持久化 Memory。
 - RAG 知识库检索。
-- 更强的异常恢复和重试策略。
+- 通用 CP-SAT 约束求解与全局最优性证明。
+- 候选 POI 的统一标准化、去重与实时库存闭环。
+- 更强的异常恢复、幂等和重试策略。
 - 人工专家评审体系。
 - 生产级鉴权、限流、灰度、监控和压测。
 - 完整的酒店、门票、天气、实时交通和价格查询闭环。
 
-在答辩或简历中建议把它描述为“多 Agent 旅游规划原型和实验系统”，不要描述为已经上线的商业系统。
+在答辩或简历中建议把它描述为“可验证的在线神经符号 Multi-Agent 旅游规划原型”，不要描述为已经上线的商业系统，也不要声称当前已经使用 CP-SAT 求解器。
 
 ---
 
@@ -645,9 +713,9 @@ $env:MAVEN_OPTS = '--enable-preview -Dfile.encoding=UTF-8'
 可继续优化的方向：
 
 - 将真实 API Key 和 MCP 地址全部迁移到环境变量或安全配置中心。
-- 为 `ManagerAgent` 增加 HTTP API，支持外部系统直接提交 prompt。
-- 为路线、行程、预算输出定义统一 JSON Schema。
-- 增加 Reviewer Agent，对最终计划做约束校验和风险提示。
+- 将现有 HTTP API 与静态页面扩展为完整的交互式规划产品。
+- 引入 CP-SAT，对景点选择、访问顺序、时间窗和预算做联合约束求解。
+- 增加标准化的候选 POI 管线与可复用 Agent Skills。
 - 增加天气、酒店、景区开放时间、门票价格等 MCP 工具。
 - 增加更大规模测试集和人工复评样本。
 - 对比更多模型、不同 token 上限和不同任务分解策略。
@@ -657,7 +725,7 @@ $env:MAVEN_OPTS = '--enable-preview -Dfile.encoding=UTF-8'
 
 ## 适合简历的一句话
 
-构建基于 AgentScope、A2A、Nacos 和 MCP 的多 Agent 协同旅游规划原型，将复杂自驾游需求拆分为主管调度、路线规划和行程规划三个 Agent，并基于 20 条跨城自驾游样本对单模型 Baseline、多 Agent 无 MCP、多 Agent + 百度地图 MCP 三组方案进行对比评估，量化分析路线规划、行程规划、预算满足、约束覆盖和响应时延。
+面向旅行规划多约束场景，基于 AgentScope、A2A 与 Nacos 构建可验证的在线神经符号 Multi-Agent 框架，由 ManagerAgent 通过 ReAct 调度路线与行程 Agent，接入百度地图 MCP 固化路线事实，并通过结构化 Plan、四类独立 Validator、影响范围分析和三级重规划闭环校验硬约束；在 20 条跨城自驾游测试集上，相比单 LLM Baseline，路线成功率提高 50.3 个百分点，规划成功率提高 39.7 个百分点，综合质量评分相对提高 17.2%，多约束满足率达到 90.1%。
 
 ---
 
@@ -665,7 +733,7 @@ $env:MAVEN_OPTS = '--enable-preview -Dfile.encoding=UTF-8'
 
 发布到 GitHub 前请确认：
 
-- 没有提交真实 `DASHSCOPE_API_KEY`。
+- 没有提交真实 `MIMO_API_KEY`。
 - 没有提交真实 `BAIDU_MAP_MCP_SSE` 私有地址。
 - 没有提交包含密钥、账号或个人隐私的日志。
 - 实验结果中的绝对路径仅用于本地复现，不作为跨机器运行前提。
